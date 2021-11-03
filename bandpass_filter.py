@@ -1,6 +1,6 @@
 import wave, struct
 import numpy as np
-from scipy.signal import butter, lfilter
+from scipy.signal import butter, lfilter, freqz
 import matplotlib.pyplot as plt
 import sys
 from optparse import OptionParser
@@ -36,11 +36,12 @@ def butter_bandpass(lowcut, highcut, fs, order=5):
     b, a = butter(order, [low, high], btype='band', analog=False)
     #https://scipy-cookbook.readthedocs.io/items/ButterworthBandpass.html
     #convert a and b to w and h
-    w, h = freqz(b,a,worN=)
+    #w, h = freqz(b,a)
     return b, a
 
 #def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
 #    b, a = butter_bandpass(lowcut, highcut, fs, order=order)
+#    w,h = freqz(b,a)
 #    y = lfilter(b, a, data)
 #    return y
 
@@ -92,10 +93,22 @@ def main(argv):
     waveFile = wave.open(filename, 'r')
     length = waveFile.getnframes()
     time_series_filtered = np.array([])
-
+    fs = waveFile.getframerate()
     interval = 1000
     Nintervals  = int(length/interval)
     print (Nintervals)
+
+    plt.figure(1)
+    plt.clf()
+    for orders in [2,5,8]:
+        b, a = butter_bandpass(cutoff_low, cutoff_high, Fs, order=orders)
+        w, h = freqz(b, a, worN=2000)
+        plt.plot((Fs * 0.5 / np.pi) * w, abs(h), label="order = %d" % orders)
+    plt.xlabel("Frequency (Hz)")
+    plt.ylabel("Gain")
+    plt.grid(True)
+    plt.savefig("frequency_order_plot.png")
+    plt.legend(loc= 'best')
     for i in range(0, Nintervals):
         waveFile.setpos(int(i*interval))
         if (i%10 == 0): print (i)
@@ -114,14 +127,14 @@ def main(argv):
 
     #print (time_series_filtered[-1000:])
     # Filter the data, and plot both the original and filtered signals.
-
+    Time = np.linspace(0,len(sample_point)/Fs, num = len(sample_point))
     path = sys.argv[-1]
     basename = os.path.splitext(os.path.basename(path))[0]
     writefile(basename+'_filtered.wav', waveFile.getparams(), \
               time_series_filtered)
     
-   
-    plt.plot(time_series, aid, label='Filtered signal')
+    plt.figure(2)
+    plt.plot(time_series_filtered, label='Filtered signal')
     plt.savefig("plot_in_bandpass.png")
     plt.xlabel('time (seconds)')
     #plt.hlines([-a, a], 0, T, linestyles='--')

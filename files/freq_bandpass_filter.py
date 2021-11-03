@@ -58,7 +58,6 @@ def writefile(fname, fileparams, data):
     wav_file.close()
 
 
-
 def main(argv):
 
    # input parser
@@ -106,8 +105,9 @@ def main(argv):
     plt.xlabel("Frequency (Hz)")
     plt.ylabel("Gain")
     plt.grid(True)
-    plt.savefig("frequency_order_plot.png")
     plt.legend(loc= 'best')
+    plt.savefig("frequency_order_plot.png")
+
     for i in range(0, Nintervals):
         waveFile.setpos(int(i*interval))
         if (i%10 == 0): print (i)
@@ -133,13 +133,13 @@ def main(argv):
               time_series_filtered)
     
     plt.figure(2)
-    plt.plot(time_series, aid, label='Filtered signal')
-    plt.savefig("plot_in_bandpass.png")
+    plt.plot(time_series_filtered, label='Filtered signal')
     plt.xlabel('time (seconds)')
     #plt.hlines([-a, a], 0, T, linestyles='--')
     plt.grid(True)
     plt.axis('tight')
     plt.legend(loc='upper left')
+    plt.savefig("plot_in_bandpass.png")
     plt.show()
     plt.close()
 
