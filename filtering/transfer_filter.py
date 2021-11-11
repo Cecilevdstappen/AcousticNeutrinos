@@ -1,6 +1,8 @@
 import wave, struct
 import numpy as np
 from scipy.signal import butter, lfilter
+from scipy.fft import fft
+from scipy.fftpack import fftfreq
 import matplotlib.pyplot as plt
 import sys
 from optparse import OptionParser
@@ -32,7 +34,7 @@ def butter_bandpass(lowcut, highcut, fs, order=5):
     nyq = 0.5 * fs
     low = lowcut/nyq
     high = highcut/nyq
-    print low, high
+    print (low, high)
     b, a = butter(order, [low, high], btype='band', analog=False)
     return b, a
 
@@ -49,7 +51,8 @@ def writefile(fname, fileparams, data):
     wav_file = wave.open(fname, "w")
     wav_file.setparams(fileparams)
     for d in data:
-        wav_file.writeframes(struct.pack('h',d))
+        wav_file.writeframes(struct.pack('f',d))
+        #wav_file.writeframes(struct.pack('h',d))
     wav_file.close()
 
 
@@ -104,13 +107,14 @@ def main(argv):
     a,b = transfer_function()
     for i in range(0, Nintervals):
         waveFile.setpos(int(i*interval))
-        if (i%10 == 0): print i
+        if (i%10 == 0): print (i)
         time_series = []
         for j in range(0, interval):
             waveData = waveFile.readframes(1)
             sample_point = struct.unpack("<h", waveData)
             time_series.append(sample_point[0])
         aid = transfer_function_filter(time_series, a, b)
+        fourier_aid = fft(aid)
 #            aid = butter_bandpass_filter(time_series, \
 #                                     cutoff_low, \
 #                                     cutoff_high, \
@@ -119,16 +123,38 @@ def main(argv):
 #        print len(time_series_filtered), len(aid)
 #    print aid
 
-    print time_series_filtered[-1000:]
+    print (time_series_filtered[-1000:])
     # Filter the data, and plot both the original and filtered signals.
 
     path = sys.argv[-1]
     basename = os.path.splitext(os.path.basename(path))[0]
-    writefile(basename+'_filtered.wav', waveFile.getparams(), \
+    writefile(basename+'_filtered_coeff.wav', waveFile.getparams(), \
               time_series_filtered)
 
-    
+    plt.figure(1)
+    plt.plot(time_series_filtered, label='Filtered signal')
+    plt.xlabel('time (seconds)')
+    #plt.hlines([-a, a], 0, T, linestyles='--')
+    plt.grid(True)
+    plt.axis('tight')
+    plt.legend(loc='upper left')
+    plt.savefig("plot_filtered_transferfunction_coeff.png")
+    plt.show()
+    plt.close()
+
+    plt.figure(2)
+    plt.plot(fourier_aid, label="Transferfunction")
+    plt.xlabel('frequency (Hz)')
+    #plt.hlines([-a, a], 0, T, linestyles='--')
+    plt.grid(True)
+    #plt.xlim(10**2, 10**5)
+    #plt.axis('tight')
+    plt.legend(loc='upper left')
+    plt.xscale("log")
+    plt.savefig("plot_transferfunction_coeff.png")
+    plt.show()
+    plt.close()
+
 if __name__ == "__main__":
     main(sys.argv)
-
 
