@@ -62,10 +62,10 @@ def transfer_function_filter(data, a, b):
 def transfer_function():
     import scipy.io
     # coefficients a and b are determined elsewhere
-    mat = scipy.io.loadmat('coeff_A.mat')
+    mat = scipy.io.loadmat('coeff_armax_A.mat')
     a =  mat['a'][0]
     
-    mat = scipy.io.loadmat('coeff_B.mat')
+    mat = scipy.io.loadmat('coeff_armax_B.mat')
     b = mat['b'][0]
     return a, b
 
@@ -138,7 +138,7 @@ def main(argv):
     plt.grid(True)
     plt.axis('tight')
     plt.legend(loc='upper left')
-    plt.savefig("plot_filtered_transferfunction_coeff.png")
+    plt.savefig("plot_filtered_transferfunction_coeff_armax.png")
     plt.show()
     plt.close()
 
@@ -151,7 +151,7 @@ def main(argv):
     #plt.axis('tight')
     plt.legend(loc='upper left')
     plt.xscale("log")
-    plt.savefig("plot_transferfunction_coeff.png")
+    plt.savefig("plot_transferfunction_coeff_armax.png")
     plt.show()
     plt.close()
 
