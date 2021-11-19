@@ -88,8 +88,7 @@ h_sample = cnt.tf(NUM_H, DEN, sampling_time)
 
 # ### Input reponse
 Time = np.asarray(time)
-Usim = np.asarray(u)
-Y1, Time, Xsim = cnt.lsim(g_sample, Usim, time)
+Y1, Time, Xsim = cnt.lsim(g_sample, Usim, Time)
 plt.figure(0)
 #plt.plot(Time, Usim)
 plt.plot(Time,Usim)
