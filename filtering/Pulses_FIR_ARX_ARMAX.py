@@ -10,7 +10,7 @@ from __future__ import division
 from past.utils import old_div
 from sippy import functionset as fset
 from sippy.armax import Armax
-from sippy.arx import ARX_id
+from sippy.arx import ARX_id, select_order_ARX
 from sippy import *
 from scipy.io import savemat
 import numpy as np
@@ -31,22 +31,21 @@ for line in lines:
     if line.startswith("#") or len(line) <= 1: continue
     else: time.append(float(line.split(' ')[0])), y.append(float(line.split(' ')[1])),u.append(float(line.split(' ')[2]))
 
-
 # Define sampling time and Time vector
 #sampling_time = 1.                                  # [s]
 end_time = time[-1]                                      # [s]
 npts = len(time)-1
 sampling_time = end_time/npts
-Time = np.linspace(0, (end_time+2*sampling_time), (npts+2))
+#Time = np.linspace(0, (end_time+2*sampling_time), (npts+2))
 print(end_time)
 print(time[:10])
-print(Time[:10])
+#print(Time[:10])
 # Define Generalize Binary Sequence as input signal 
 switch_probability = 0.08  # [0..1]
 #[Usim,_,_] = fset.GBN_seq(npts, switch_probability, Range = [-1, 1])
 Usim= np.asarray(u)
 # Define white noise as noise signal
-white_noise_variance = [0.01]
+white_noise_variance = [0.0001]
 e_t = fset.white_noise_var(Usim.size, white_noise_variance)[0]
 
 # ## Define the system (ARMAX model)
@@ -90,7 +89,6 @@ h_sample = cnt.tf(NUM_H, DEN, sampling_time)
 Time = np.asarray(time)
 Y1, Time, Xsim = cnt.lsim(g_sample, Usim, Time)
 plt.figure(0)
-#plt.plot(Time, Usim)
 plt.plot(Time,Usim)
 plt.plot(Time, Y1)
 plt.xlabel("Time")
@@ -115,7 +113,7 @@ plt.show()
 # $$Y_t = Y_1 + Y_2 = G.u + H.e$$
 
 Ytot = Y1 + Y2
-Utot = u + e_t
+Utot = Usim + e_t
 plt.figure(2)
 plt.plot(Time, y, label="y")
 plt.plot(Time, Ytot, label="y found with coeff")
@@ -139,16 +137,16 @@ theta_list = [len(y),len(u)]
 if mode == 'IC':
     # use Information criterion
     
-    Id_ARMAXi = system_identification(Ytot, Usim, 'ARMAX', IC='AIC', na_ord=[4, 4], nb_ord=[3, 3],
+    #Id_ARMAXi = system_identification(Ytot, Usim, 'ARMAX', IC='AIC', na_ord=[4, 4], nb_ord=[3, 3],
                               #nc_ord=[2, 2], delays=[11, 11], max_iterations=300, ARMAX_mod = 'ILLS')
     
-    #Id_ARMAXi = system_identification(y, u, 'ARMAX', IC='AIC', na_ord=[4, 4], nb_ord=[3, 3],
+    Id_ARMAXi = system_identification(y, u, 'ARMAX', IC='AIC', na_ord=[4, 4], nb_ord=[3, 3],
                               nc_ord=[2, 2], delays=[11, 11], max_iterations=300, ARMAX_mod = 'ILLS')
 
-    Id_ARMAXo = system_identification(Ytot, Usim, 'ARMAX', IC='AICc', na_ord=[4, 4], nb_ord=[3, 3],
+    Id_ARMAXo = system_identification(y, u, 'ARMAX', IC='AICc', na_ord=[4, 4], nb_ord=[3, 3],
                                       nc_ord=[2, 2], delays=[11, 11], max_iterations=300, ARMAX_mod = 'OPT')
     
-    Id_ARMAXr = system_identification(Ytot, Usim, 'ARMAX', IC='BIC', na_ord=[4, 4], nb_ord=[3, 3],
+    Id_ARMAXr = system_identification(y, u, 'ARMAX', IC='BIC', na_ord=[4, 4], nb_ord=[3, 3],
                               nc_ord=[2, 2], delays=[11, 11], max_iterations=300, ARMAX_mod = 'RLLS')
     
 
@@ -159,22 +157,22 @@ elif mode == 'FIXED':
     na_ord = [4]; nb_ord = [[3]]; nc_ord = [2]; theta = [[11]]
     
     # ITERATIVE ARMAX
-    Id_ARMAXi = system_identification(Ytot, Usim, 'ARMAX', ARMAX_orders = [na_ord, nb_ord, nc_ord, theta],
-                                      max_iterations = 300)#, ARMAX_mod = 'ILLS' )
+    Id_ARMAXi = system_identification(y, u, 'ARMAX', ARMAX_orders = [na_ord, nb_ord, nc_ord, theta],
+                                      max_iterations = 300, ARMAX_mod = 'ILLS' )
 
     # OPTIMIZATION-BASED ARMAX
-    Id_ARMAXo = system_identification(Ytot, Usim, 'ARMAX', ARMAX_orders = [na_ord, nb_ord, nc_ord, theta],
+    Id_ARMAXo = system_identification(y, u, 'ARMAX', ARMAX_orders = [na_ord, nb_ord, nc_ord, theta],
                                       max_iterations = 300, ARMAX_mod = 'OPT') 
     
     # RECURSIVE ARMAX
-    Id_ARMAXr = system_identification(Ytot, Usim, 'ARMAX', ARMAX_orders = [na_ord, nb_ord, nc_ord, theta], 
+    Id_ARMAXr = system_identification(y, u, 'ARMAX', ARMAX_orders = [na_ord, nb_ord, nc_ord, theta], 
                                       max_iterations=300, ARMAX_mod = 'RLLS')
 
 # ARX
-    Id_ARX = system_identification(Ytot, Usim, 'ARX', ARX_orders=[4, 3, 0])  #
+    Id_ARX = system_identification(y, u, 'ARX', ARX_orders=[5, 5, 2])  #
 
 # FIR
-    Id_FIR = system_identification(Ytot, Usim, 'FIR', FIR_orders=[3, 0])
+    Id_FIR = system_identification(y, u, 'FIR', FIR_orders=[3, 0])
 
 Y_armaxi = Id_ARMAXi.Yid.T
 Y_armaxo = Id_ARMAXo.Yid.T
@@ -185,7 +183,7 @@ Y_fir = Id_FIR.Yid.T
 # ## Check consistency of the identified system
 
 plt.figure(3)
-plt.plot(Time, u)
+plt.plot(Time, Usim)
 #plt.plot(time,u)
 plt.ylabel("Input GBN")
 plt.xlabel("Time")
@@ -195,7 +193,7 @@ plt.show()
 
 plt.figure(4)
 #plt.plot(time, y, label="y")
-plt.plot(Time, Ytot)
+plt.plot(Time, Ytot,'--', label = "Y with coeff")
 #plt.plot(Time, Y_armaxi)
 #plt.plot(Time, Y_armaxo)
 #plt.plot(Time, Y_armaxr)
@@ -209,7 +207,9 @@ plt.title("Output, (identification data)")
 plt.legend()
 plt.show()
 
+
 u = np.asarray(u)
+y = np.asarray(y)
 y_reshape = np.reshape(y, (10000,))
 print (Y_armaxi.shape)
 print(u.shape)
@@ -227,6 +227,15 @@ G_num_arx, G_den_arx, H_num_arx, Vn_arx, y_id_arx = ARX_id(y_reshape,u,na=4, nb=
 print(G_den_arx)
 print(G_num_arx)
 print(H_num_arx)
+
+#Select order ARX
+na_min, nb_min, theta_min, g_identif, h_identif, NUM_order, DEN_order, VN_order, Y_id_order =select_order_ARX(y, u, tsample=1., na_ord=[0, 5], nb_ord=[1, 5], delays=[0, 5], method='AIC')
+print(na_min)
+print(nb_min)
+print(theta_min)
+print(g_identif)
+print(h_identif)
+
 
 #Determine a and b coefficients of FIR method
 G_num_fir, G_den_fir, H_num_fir, Vn_fir, y_id_fir = ARX_id(y_reshape,u,na=0, nb=3, theta=0)
