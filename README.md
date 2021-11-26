@@ -13,3 +13,7 @@ Master thesis on acoustic neutrino detection.
 4. This .wav file can be plotted using the audioplot script signal vs time. 
 
 5. The Spectrogram or Spectroplot plot the signal + background dat file as amplitude vs frequency. 
+
+# Filtering
+
+1. 
