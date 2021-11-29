@@ -142,7 +142,16 @@ def main(argv):
     plt.savefig("plot_in_bandpass.png")
     plt.show()
     plt.close()
-
+    Time = np.linspace(0,len(sample_point)/Fs, num = len(sample_point))
+    
+    plt.figure(3)
+    plt.plot(Time,(Fs * 0.5 / np.pi) * w)
+    plt.grid(True)
+    plt.axis('tight')
+    plt.legend(loc='upper left')
+    #plt.savefig("plot_in_bandpass.png")
+    plt.show()
+    plt.close()
 
 if __name__ == "__main__":
     main(sys.argv)

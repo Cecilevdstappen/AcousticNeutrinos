@@ -63,10 +63,10 @@ def transfer_function():
     import scipy.io
     # coefficients a and b are determined elsewhere
     mat = scipy.io.loadmat('coeff_armax_A.mat')
-    a =  mat['a'][0]
+    a =  mat['G_den'][0]
     
     mat = scipy.io.loadmat('coeff_armax_B.mat')
-    b = mat['b'][0]
+    b = mat['G_num'][0]
     return a, b
 
 def main(argv):
@@ -97,29 +97,49 @@ def main(argv):
     cutoff_low = options.low_cut  # desired cutoff frequency of the filter, Hz
     cutoff_high = options.high_cut   # desired cutoff frequency of the filter, Hz
     
-    filename = sys.argv[1]
-    waveFile = wave.open(filename, 'r')
-    length = waveFile.getnframes()
-    time_series_filtered = np.array([])
+    #Read in dat file
+    file_name = 'pulses.dat'
+    waveFile = open(file_name,'r')
+    lines = waveFile.readlines()
+    time = [] #s
+    y = []
+    u = []
 
-    interval = 100
-    Nintervals  = int(length/interval)
+    for line in lines:
+        if line.startswith("#") or len(line) <= 1: continue
+        else: time.append(float(line.split(' ')[0])), y.append(float(line.split(' ')[1])),u.append(float(line.split(' ')[2]))
+    
+    length = len(y)
+    #Read in wave file
+    #filename = sys.argv[1]
+    #waveFile = wave.open(filename, 'r')
+    #length = waveFile.getnframes()
+    #time_series_filtered = np.array([])
+
+   
     a,b = transfer_function()
-    for i in range(0, Nintervals):
-        waveFile.setpos(int(i*interval))
-        if (i%10 == 0): print (i)
-        time_series = []
-        for j in range(0, interval):
-            waveData = waveFile.readframes(1)
-            sample_point = struct.unpack("<h", waveData)
-            time_series.append(sample_point[0])
-        aid = transfer_function_filter(time_series, a, b)
-        fourier_aid = fft(aid)
+    time_series_filtered = transfer_function_filter(u,a,b)
+    
+#   
+#    interval = 100
+#   Nintervals  = int(length/interval)
+#   a,b = transfer_function()
+#    for i in range(0, Nintervals):
+#        waveFile.setpos(int(i*interval))
+#       if (i%10 == 0): print (i)   
+#        time_series = []
+#        for j in range(0, interval):
+#            waveData = waveFile.readframes(1)
+#            sample_point = struct.unpack("<h", waveData)
+#            time_series.append(sample_point[0])
+#        aid = transfer_function_filter(time_series, a, b)
+#        aid = transfer_function_filter(u,a,b)
+#        fourier_aid = fft(aid)
 #            aid = butter_bandpass_filter(time_series, \
 #                                     cutoff_low, \
 #                                     cutoff_high, \
 #                                     Fs, order)
-        time_series_filtered = np.concatenate((time_series_filtered, np.asarray(aid)), axis=None)
+#        time_series_filtered = np.concatenate((time_series_filtered, np.asarray(aid)), axis=None)
 #        print len(time_series_filtered), len(aid)
 #    print aid
 
@@ -128,11 +148,12 @@ def main(argv):
 
     path = sys.argv[-1]
     basename = os.path.splitext(os.path.basename(path))[0]
-    writefile(basename+'_filtered_coeff.wav', waveFile.getparams(), \
-              time_series_filtered)
+    #writefile(basename+'_filtered_coeff.wav', waveFile.getparams(), \
+    #          time_series_filtered)
 
     plt.figure(1)
     plt.plot(time_series_filtered, label='Filtered signal')
+    plt.plot(y,label="y")
     plt.xlabel('time (seconds)')
     #plt.hlines([-a, a], 0, T, linestyles='--')
     plt.grid(True)
