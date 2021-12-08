@@ -25,3 +25,5 @@ Master thesis on acoustic neutrino detection.
 4. Audioplot plots neutrino signal (+ background)
 
 5. The scripts freq_bandpass_filter.py and transfer_filter.py use the scipy.signal.butter and scipy.signal.lfilter function to apply lowpass, highpass, bandpass filters and FIR filters. 
+
+6. Use Audacity to get spectrogram from .wav file
