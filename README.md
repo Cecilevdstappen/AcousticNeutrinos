@@ -16,4 +16,10 @@ Master thesis on acoustic neutrino detection.
 
 # Filtering
 
-1. 
+1. With the SIPPY scripts Pulses_FIR_ARX_ARMAX.py and Neutrino_FIR_ARX_ARMAX.py the coefficients and filters can be determined using the output signal y and the input signal u.
+
+2. The convolve_and_coeff.py convolves the measured transfer function Bodemat_Dubbel_1FF_Actran_Sweep200Hz20kHz0degree_AfterPressure_v2.dat and the neutrino signal (u) neutrino_12.0_1000_1_11.dat to get the output y.
+
+3. The impulse_DUT.py makes use of impulse.py to determine the model. It uses the sample frequentie (Fs), de resonantie frequentie (f) en de relatieve demping (zeta) to detemine the coefficients and then detemines the model. 
+
+4. 
