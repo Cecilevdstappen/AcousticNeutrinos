@@ -79,9 +79,9 @@ convolved_tf_f = convolved_tf_f/norm
 #transfer_freq = np.fft.ifft(transfer_freq, n=2*len(y_im))
 
 plt.figure(1)
-plt.plot(y_im, label='transferfunction')
+plt.plot(np.real(y_im), label='transferfunction')
 #plt.plot(white_noise_f, label='white noise')
-plt.plot(convolved_tf_f, label ="convolved")
+plt.plot(np.real(convolved_tf_f), label ="convolved")
 plt.xlabel("frequency")
 plt.ylabel(" Amplitude")
 plt.title("Convolution transferfunction and white noise")
@@ -91,8 +91,8 @@ plt.show()
 
 
 plt.figure(2)
-plt.plot(transfer_function_t, label='transferfunction')
-plt.plot(amplitude, label = ' signal' )
+plt.plot(np.real(transfer_function_t), label='transferfunction')
+plt.plot(np.real(amplitude), label = ' signal' )
 #plt.plot(white_noise, label='white noise')
 plt.plot(convolved_tf_t, label ="convolved")
 plt.xlabel("time")
