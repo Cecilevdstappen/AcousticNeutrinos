@@ -22,4 +22,6 @@ Master thesis on acoustic neutrino detection.
 
 3. The impulse_DUT.py makes use of impulse.py to determine the model. It uses the sample frequentie (Fs), de resonantie frequentie (f) en de relatieve demping (zeta) to detemine the coefficients and then detemines the model. 
 
-4. 
+4. Audioplot plots neutrino signal (+ background)
+
+5. The scripts freq_bandpass_filter.py and transfer_filter.py use the scipy.signal.butter and scipy.signal.lfilter function to apply lowpass, highpass, bandpass filters and FIR filters. 
