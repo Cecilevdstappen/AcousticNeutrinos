@@ -7,6 +7,8 @@ import sys
 import scipy
 import itertools
 from sippy import functionset as fset
+from sippy.armax import Armax
+from sippy.arx import ARX_id, select_order_ARX
 
 
 #read in transfer function file
@@ -47,6 +49,10 @@ time = data[0]
 amplitude = data[1]
 norm = np.linalg.norm(amplitude)
 amplitude = amplitude/norm
+end_time = time[-1]                                      # [s]
+npts = len(time)-1
+sampling_time = end_time/npts
+
 #amplitude = np.roll(amplitude,-1000)
 
 
@@ -94,7 +100,7 @@ plt.figure(2)
 plt.plot(np.real(transfer_function_t), label='transferfunction')
 plt.plot(np.real(amplitude), label = ' signal' )
 #plt.plot(white_noise, label='white noise')
-plt.plot(convolved_tf_t, label ="convolved")
+plt.plot(np.real(convolved_tf_t), label ="convolved")
 plt.xlabel("time")
 plt.ylabel(" Amplitude")
 #plt.xlim(0,1200)
@@ -103,27 +109,44 @@ plt.legend()
 plt.grid()
 plt.show()
 
+#Determining a and b coefficient
+u= amplitude_f
+y_reshape = np.reshape(convolved_tf_t, (2048,))
+# Determine a and b coefficients of ARMAX method
+Arm = Armax(na_bounds=[4,4], nb_bounds=[3,3], nc_bounds=[2, 2], delay_bounds=[11, 11], dt=1/npts)
+G_num_armax, G_den_armax, H_num_armax, H_den_armax, Vn_armax, y_id_armax, max_reached_armax = Arm._identify(y_reshape, u, na=4, nb=3, nc=2, delay=11,max_iterations=300)
+print("The Armax coeff are: a=%s, b=%s, c=%s"%(H_den_armax, G_num_armax,H_num_armax)) 
+
+#Determine a and b coefficient of ARX method
+G_num_arx, G_den_arx, H_num_arx, Vn_arx, y_id_arx = ARX_id(y_reshape,u,na=4, nb=3, theta=0)
+print("The ARX coeff are: a=%s, b=%s, c=%s"%(G_den_arx, G_num_arx,H_num_arx))
+
+
+#Determine a and b coefficients of FIR method
+G_num_fir, G_den_fir, H_num_fir, Vn_fir, y_id_fir = ARX_id(y_reshape,u,na=0, nb=3, theta=0)
+print("The FIR coeff are: a=%s, b=%s, c=%s"%(G_den_fir, G_num_fir,H_num_fir))
 
 #Poles is the factorized denumerator array and zeros is the numerator array
-poles,zeros = cnt.pzmap(transfer_function)
+#poles,zeros = cnt.pzmap(transfer_function_f)
 
 #play with poles and zeroes values and see how it changes the transferfunction
-for i,j in np.arange(0,5,0.5):
-    test_poles = i*poles
-    test_zeros = i*zeros
-    expand_zeroes = sympy.expand(test_zeros)
-    expand_poles = sympy.expand(test_poles)
-    test_transfer = cnt.tf(expand_zeroes, expand_poles)
+#for i,j in np.arange(0,5,0.5):
+#    test_poles = i*poles
+#    test_zeros = i*zeros
+#    expand_zeroes = sympy.expand(test_zeros)
+#    expand_poles = sympy.expand(test_poles)
+#    test_transfer = cnt.tf(expand_zeroes, expand_poles)
     #test_trasferfunction.fft()
 
 
-    plt.figure(2)
-    plt.plot(test_transferfunction, label = "{0:.1f} * zeros and {1:.1f}" .format(i,j))
-    plt.xlabel("frequency") 
-    plt.ylabel(" Amplitude")
-plt.title("Transferfunction a and b influence")
-plt.legend()
-plt.grid()
-plt.show()
+#    plt.figure(2)
+#    plt.plot(test_transferfunction, label = "{0:.1f} * zeros and {1:.1f}" .format(i,j))
+#    plt.xlabel("frequency") 
+#    plt.ylabel(" Amplitude")
+#plt.title("Transferfunction a and b influence")
+#plt.legend()
+#plt.grid()
+#plt.show()
+
 
 
