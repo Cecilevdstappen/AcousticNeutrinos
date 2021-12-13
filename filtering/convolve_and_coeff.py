@@ -13,6 +13,7 @@ from sippy.arx import ARX_id, select_order_ARX
 
 #read in transfer function file
 filename = 'Bodemat_Dubbel_1FF_Actran_Sweep200Hz20kHz0degree_AfterPressure_v2.dat'
+filename = 'Bodemat_Dubbel_1FF_Atran_Sweep200Hz20kHz90degreev3(1).dat'
 f = open(filename,'r')
 lines = f.readlines()
 freq = [] #s
@@ -24,14 +25,18 @@ y_im = []
 
 dtypes = [('col0', float)]+[('col1', np.complex128)]
 data = np.loadtxt(filename,  usecols=(0,1), dtype=dtypes, unpack=True)#,  dtype='float,np.complex128)
-tenthlines = itertools.islice(data[0], 0, None, 20)
-y_tenthlines = itertools.islice(data[1],0,None,20)
+tenthlines = itertools.islice(data[0], 200, 20000, 7)
+y_tenthlines = itertools.islice(data[1],200,20000,7)
 for line in tenthlines:
     freq.append(line)
-freq=np.asarray(freq)
+freq=np.asanyarray(freq)
+print (freq)
 for line in y_tenthlines:
     y_im.append(line)
 y_im = np.asarray(y_im)
+norm = np.linalg.norm(y_im)
+y_im = y_im/norm
+
 #freq=data[0]
 #y_im=data[1]
 
@@ -54,16 +59,25 @@ npts = len(time)-1
 sampling_time = end_time/npts
 
 #amplitude = np.roll(amplitude,-1000)
-
-
+window = np.hamming(2048)
+amplitude = window*amplitude
 amplitude_f = np.fft.fft(amplitude)
+#freq = np.fft.fftfreq(time.shape[-1])
+df = 1/(len(amplitude)*sampling_time)
+N = len(amplitude)
+freq = np.array([df*n if n<N/2 else df*(n-N) for n in range(N)])
+#freq = np.fft.ifftshift(freq)
+print (freq)
 norm = np.linalg.norm(amplitude_f)
-amplitude_f = amplitude/norm
+amplitude_f = amplitude_f/norm
 #amplitude_f.normalize()
 
 white_noise_variance = [0.0001]
 white_noise = fset.white_noise_var(y_im.size, white_noise_variance)[0]
+#white_noise = window*white_noise
 white_noise_f = np.fft.fft(white_noise) 
+norm = np.linalg.norm(white_noise_f)
+white_noise_f = white_noise_f/norm
 
 transfer_function_t = np.fft.ifft(y_im, n=2*len(y_im))
 
@@ -71,7 +85,9 @@ y_im.resize(amplitude_f.size)
 transfer_function_t.resize(amplitude.size)
 #convolved_tf_t = scipy.signal.convolve(amplitude, transfer_function_t, mode='full', method='auto')
 #convolved_tf_f = scipy.signal.convolve(amplitude_f, y_im, mode='full', method='auto')
+#convolved_tf_f = (white_noise_f * y_im)
 convolved_tf_f = (amplitude_f * y_im)
+convolved_tf_f = window * convolved_tf_f
 convolved_tf_t = np.fft.ifft(convolved_tf_f)
 norm = np.linalg.norm(convolved_tf_t)
 convolved_tf_t = convolved_tf_t/norm
@@ -85,9 +101,10 @@ convolved_tf_f = convolved_tf_f/norm
 #transfer_freq = np.fft.ifft(transfer_freq, n=2*len(y_im))
 
 plt.figure(1)
-plt.plot(np.real(y_im), label='transferfunction')
+#plt.plot(y_im, label='transferfunction')
 #plt.plot(white_noise_f, label='white noise')
-plt.plot(np.real(convolved_tf_f), label ="convolved")
+plt.plot(freq, amplitude_f, label = 'signal')
+#plt.plot(convolved_tf_f,linestyle='dashed', label ="convolved")
 plt.xlabel("frequency")
 plt.ylabel(" Amplitude")
 plt.title("Convolution transferfunction and white noise")
@@ -97,10 +114,10 @@ plt.show()
 
 
 plt.figure(2)
-plt.plot(np.real(transfer_function_t), label='transferfunction')
-plt.plot(np.real(amplitude), label = ' signal' )
+plt.plot(transfer_function_t, label='transferfunction')
+plt.plot(amplitude, label = ' signal' )
 #plt.plot(white_noise, label='white noise')
-plt.plot(np.real(convolved_tf_t), label ="convolved")
+plt.plot(convolved_tf_t,linestyle='dashed', label ="convolved")
 plt.xlabel("time")
 plt.ylabel(" Amplitude")
 #plt.xlim(0,1200)

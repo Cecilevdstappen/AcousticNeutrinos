@@ -12,11 +12,13 @@ f = wave.open(file_name,'r')
 frames = f.readframes(-1)
 u = np.frombuffer(frames, dtype="int16")
 fs = f.getframerate()
+
 print(fs)
 # If Stereo
 if f.getnchannels() == 2:
     print("Just mono files")
     sys.exit(0)
+f.close()
 
 time = np.linspace(0,len(u)/fs, num = len(u))
 

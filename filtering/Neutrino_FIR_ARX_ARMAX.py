@@ -22,18 +22,15 @@ import sys
 ## TEST IDENTIFICATION METHODS for ARMAX model
 
 #Data from pulse file
-file_name = 'neutrino_12.0_1000_1_11_100000.wav'
-f = wave.open(file_name,'r')
-frames = f.readframes(-1)
-u = np.frombuffer(frames, dtype="int16")
-fs = f.getframerate()
-
-# If Stereo
-if f.getnchannels() == 2:
-    print("Just mono files")
-    sys.exit(0)
-
-time = np.linspace(0,len(u)/fs, num = len(u))
+filename_sig = 'neutrino_12.0_1000_1_11.dat'
+f = open(filename_sig,'r')
+lines = f.readlines()
+time = [] #s
+u = []
+dtypes = [('col0', float)]+[('col1', float)]
+data = np.loadtxt(filename_sig,  usecols=(0,1), dtype=dtypes, unpack=True)#,  dtype='float,np.complex128)
+time = data[0]
+u = data[1]
 
 
 # Define sampling time and Time vector
@@ -55,18 +52,35 @@ e_t = fset.white_noise_var(Usim.size, white_noise_variance)[0]
 
 # ## Define the system (ARMAX model)
 
-def transfer_function():
-    import scipy.io
+#def transfer_function():
+#    import scipy.io
     # coefficients a and b are determined elsewhere
-    mat = scipy.io.loadmat('coeff_armax_A.mat')
-    a =  mat['G_den'][0]
+#    mat = scipy.io.loadmat('coeff_armax_A.mat')
+#    a =  mat['G_den'][0]
 
-    mat = scipy.io.loadmat('coeff_armax_B.mat')
-    b = mat['G_num'][0]
-    return a, b
+#    mat = scipy.io.loadmat('coeff_armax_B.mat')
+#    b = mat['G_num'][0]
+#    return a, b
 
-DEN, NUM = transfer_function()
-NUM_H = [1.,0.,0.,0.,0.]
+#DEN, NUM = transfer_function()
+#NUM_H = [1.,0.,0.,0.,0.]
+
+
+#Coefficients ARMAX
+DEN=[ 1. ,-3.06414027, -0.07969095,  0.14077347,  0.32362241, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.] 
+NUM=[  0., 0.,  0.,  0.,  0., 0.,  0., 0., 0., 0., 0., 16.66062949, 33.20914133, 16.57722409] 
+NUM_H=[ 1.,-3.12105323,  0.17666844,  0., 0., 0., 0., 0.,0., 0., 0., 0., 0., 0., 0.]
+
+#Coefficients FIR
+#DEN = [1., 0., 0., 0.]
+#NUM = [-1.06846807, -1.63432144, -0.57026142]
+#NUM_H = [1., 0., 0., 0.]
+
+#Coeffiecients ARX
+#DEN=[ 1., 0.05408313, -0.07579447, -0.10044199,  0.01768808] 
+#NUM=[ -1.28050882, -2.02868787, -0.75300036, 0.] 
+#NUM_H = [1., 0., 0., 0., 0.]
+
 
 # ### Define transfer functions
 
@@ -177,16 +191,16 @@ plt.show()
 plt.figure(4)
 plt.plot(time, u, label="u")
 plt.plot(Time, Ytot,'--', label = "Y with coeff")
-#plt.plot(Time, Y_armaxi)
-#plt.plot(Time, Y_armaxo)
-#plt.plot(Time, Y_armaxr)
-plt.plot(Time, Y_fir, label ="FIR")
+plt.plot(Time, Y_armaxi)
+plt.plot(Time, Y_armaxo)
+plt.plot(Time, Y_armaxr)
+#plt.plot(Time, Y_fir, label ="FIR")
 #plt.plot(Time,Y_arx,label = "ARX")
 plt.grid()
 plt.xlabel("Time")
 plt.ylabel("y(t)")
 plt.title("Output, (identification data)")
-#plt.legend(['System', 'ARMAX-I', 'ARMAX-0', 'ARMAX-R'])
+plt.legend(['System', 'ARMAX-I', 'ARMAX-0', 'ARMAX-R'])
 plt.legend()
 plt.show()
 
