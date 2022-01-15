@@ -194,15 +194,20 @@ wav.close()
 time_trace = read(filename_sig_bkg)
 time_data = np.arange(0, sound_info.size) / frame_rate
 amplitude_data = time_trace[1]
+amplitude_data_f = np.fft.fft(amplitude_data)
 norm = np.linalg.norm(amplitude_data)
-amplitude_data = amplitude/norm
+amplitude_data = amplitude_data/norm
+norm_f = np.linalg.norm(amplitude_data_f)
+amplitude_data_f = amplitude_data_f/norm_f
+
+
 end_time_data = time_data[-1]                                      # [s]
 npts = len(time_data)-1
 sampling_time_data = end_time_data/npts
 
 # %%
 impResponse = np.real(im.imp_Impulse[0:im.imp_NFFT])
-convolved__t = scipy.signal.convolve(amplitude, impResponse, mode='full', method='auto')
+convolved__t = scipy.signal.convolve(amplitude_data, impResponse, mode='full', method='auto')
 plt.figure(4);plt.clf()
 hgcc = plt.gcf().number
 f_fig, axs= plt.subplots(2, 1,sharex=False,sharey=False, num=hgcc)
@@ -245,13 +250,14 @@ snr_full = {}
 imp = np.resize(imp,512)
 imp = np.real(imp)
 amplitude_f = np.resize(amplitude_f,len(imp))
-amplitude_data = np.real(amplitude_data)
-amplitude_data = np.resize(amplitude_data,(len(imp)-1)*2)
-amplitude_f = types.FrequencySeries(amplitude_f, 1/sampling_time)
+amplitude_data = np.resize(amplitude_data_f, len(amplitude_f))
+#amplitude_data = np.real(amplitude_data_f)
+#amplitude_data = np.resize(amplitude_data,(len(imp)-1)*2)
+amplitude_f = types.FrequencySeries(amplitude_f,im.imp_Fs)# 1/sampling_time)
 amplitude_f = amplitude_f.to_frequencyseries()
-amplitude_data = types.TimeSeries(amplitude_data, sampling_time_data)
-amplitude_data = amplitude_data.to_timeseries()
-imp = types.FrequencySeries(imp,1/sampling_time_data)
+amplitude_data = types.FrequencySeries(amplitude_data,im.imp_Fs)
+amplitude_data = amplitude_data.to_frequencyseries()
+imp = types.FrequencySeries(imp,im.imp_Fs)
 imp = imp.to_frequencyseries()
 #amplitude = np.asarray(amplitude)
 #amplitude_data = np.asanyarray(amplitude_data)
@@ -264,11 +270,14 @@ print(imp.shape)
 print(amplitude_f.dtype)
 print(amplitude_data.dtype)
 print(imp.dtype)
+print(amplitude_data.delta_f)
+print(imp.delta_f)
+print(amplitude_f.delta_f)
 snr_full = filt.matched_filter(amplitude_f, amplitude_data,imp)
 ax.plot(snr_full.sample_times, abs(snr_full),
             alpha=alpha)
 ax.legend()
-ax.set_title(title)
+ax.set_title("matched filtering")
 ax.grid()
 ax.set_ylim(0, None)
 ax.set_xlabel('Time (s)')
