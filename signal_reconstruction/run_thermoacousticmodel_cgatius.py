@@ -20,6 +20,7 @@ def resampled_signal(filename):
 
     Fs = 1/(time[1] - time [0])
     Fs_resampled = 144000.
+    Fs_resampled = 44100
 
     number_resampled = int(round(len(bip)*Fs_resampled/Fs))
 
@@ -117,6 +118,12 @@ def main(argv):
                             commandlinestring = 'octave -q one_pulse.m ' + str(round(float(zpos),2)) + \
                             ' ' + str(rpos) + ' ' + 'neutrino_' + ' ' + input_file + ' ' + str(energy) + ' ' + str(fact_energy)
                             os.system(commandlinestring)
+                            t_resampled, bip_resampled = resampled_signal(file_name)
+                            dat = np.array([t_resampled, bip_resampled])
+                            a= np.column_stack((dat))
+                            hdrtxt='# time ,#amplitude'
+                            np.savetxt('neutrino_resampled.dat', a, delimiter=' ',header=hdrtxt )
+
 
 
                         #create pressure vs time plot                                                                                                                               
@@ -154,6 +161,7 @@ def main(argv):
                             if wave_clip == True:
                                 pulse_file =  'neutrino_' +  str(round(float(zpos),0)) + '_' + str(rpos) + '_' + str(fact_energy) + '_' + str(energy) + '.dat'
                                 waveclip(pulse_file, scaling*100000)
+                                resampled_signal(pulse_file)
 
 
 if __name__ == '__main__':

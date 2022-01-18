@@ -164,7 +164,31 @@ gtf=cnt.tf(imp,den,1/im.imp_Fs)
 plt.figure(3);plt.clf();cnt.bode(gtf,Hz=1)
 plt.show()
 # %%
-filename_sig = 'neutrino_12.0_1000_1_11.dat'
+# Spermwhale file as noise signal
+spermwhale = 'spermwhale.wav'
+wav = wave.open(spermwhale, 'r')
+frames = wav.readframes(-1)
+sound_info = np.frombuffer(frames,dtype='int16')
+frame_rate = wav.getframerate()
+wav.close()
+
+time_trace= read(spermwhale)
+time_data = np.arange(0, sound_info.size) / frame_rate
+noise_whale = time_trace[1]
+noise_whale_f = np.fft.fft(noise_whale)
+norm = np.linalg.norm(noise_whale)
+noise_whale = noise_whale/norm
+norm_f = np.linalg.norm(noise_whale_f)
+noise_whale_f = noise_whale_f/norm_f
+
+end_time_data = time_data[-1]                                      # [s]
+npts = len(time_data)-1
+sampling_time_whale = end_time_data/npts
+
+
+# %%
+#filename_sig = 'neutrino_12.0_1000_1_11.dat'
+filename_sig = 'neutrino_resampled.dat'
 f = open(filename_sig,'r')
 lines = f.readlines()
 time = [] #s
@@ -184,7 +208,7 @@ npts = len(time)-1
 sampling_time = end_time/npts
 # %%
 
-filename_sig_bkg = 'neutrino_12.0_1000_1_11_100000.wav' 
+filename_sig_bkg = 'neutrino_12.0_1000_1_11_10000000.wav' 
 wav = wave.open(filename_sig_bkg, 'r')
 frames = wav.readframes(-1)
 sound_info = np.frombuffer(frames,dtype='int16')
@@ -249,16 +273,20 @@ snr_full = {}
 # Do matched filter, filtering data that has noise given by PSD with
 imp = np.resize(imp,512)
 imp = np.real(imp)
-amplitude_f = np.resize(amplitude_f,len(imp))
+noise_whale_f = np.resize(noise_whale_f, 512)
+noise_whale_f = np.real(noise_whale_f)
+amplitude_f = np.resize(amplitude_f,len(noise_whale_f))
 amplitude_data = np.resize(amplitude_data_f, len(amplitude_f))
 #amplitude_data = np.real(amplitude_data_f)
 #amplitude_data = np.resize(amplitude_data,(len(imp)-1)*2)
-amplitude_f = types.FrequencySeries(amplitude_f,im.imp_Fs)# 1/sampling_time)
+amplitude_f = types.FrequencySeries(amplitude_f, 1/sampling_time)
 amplitude_f = amplitude_f.to_frequencyseries()
-amplitude_data = types.FrequencySeries(amplitude_data,im.imp_Fs)
+amplitude_data = types.FrequencySeries(amplitude_data,1/sampling_time_data)
 amplitude_data = amplitude_data.to_frequencyseries()
 imp = types.FrequencySeries(imp,im.imp_Fs)
 imp = imp.to_frequencyseries()
+noise_whale_f = types.FrequencySeries(noise_whale_f, 1/sampling_time_whale)
+noise_whale_f = noise_whale_f.to_frequencyseries()
 #amplitude = np.asarray(amplitude)
 #amplitude_data = np.asanyarray(amplitude_data)
 #amplitude_data = amplitude_data.reshape(amplitude_data.size,)
@@ -270,13 +298,13 @@ print(imp.shape)
 print(amplitude_f.dtype)
 print(amplitude_data.dtype)
 print(imp.dtype)
-print(amplitude_data.delta_f)
-print(imp.delta_f)
 print(amplitude_f.delta_f)
+print(amplitude_data.delta_f)
+print(noise_whale_f.delta_f)
 print(1/sampling_time)
 print(1/sampling_time_data)
-print(im.imp_Fs)
-snr_full = filt.matched_filter(amplitude_f, amplitude_data,imp)
+print(1/sampling_time_whale)
+snr_full = filt.matched_filter(amplitude_f, amplitude_data,noise_whale_f)
 ax.plot(snr_full.sample_times, abs(snr_full),
             alpha=alpha)
 ax.legend()
