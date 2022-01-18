@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 
 #scaling = pow(10, 168./20)                                                                                                                                                          
 sampling_rate = 144000.
+sampling_rate = 44100
 
 def write_out(bipfilename, scaling, bmax, bmin):
     print("Generated file: ", bipfilename, scaling, bmax, bmin)
@@ -20,7 +21,7 @@ def resampled_signal(filename):
 
     Fs = 1/(time[1] - time [0])
     Fs_resampled = 144000.
-    Fs_resampled = 44100
+    Fs_resampled = 44590
 
     number_resampled = int(round(len(bip)*Fs_resampled/Fs))
 
@@ -121,6 +122,7 @@ def main(argv):
                             t_resampled, bip_resampled = resampled_signal(file_name)
                             dat = np.array([t_resampled, bip_resampled])
                             a= np.column_stack((dat))
+                            print(1/(t_resampled[1]-t_resampled[0]))
                             hdrtxt='# time ,#amplitude'
                             np.savetxt('neutrino_resampled.dat', a, delimiter=' ',header=hdrtxt )
 
@@ -161,7 +163,7 @@ def main(argv):
                             if wave_clip == True:
                                 pulse_file =  'neutrino_' +  str(round(float(zpos),0)) + '_' + str(rpos) + '_' + str(fact_energy) + '_' + str(energy) + '.dat'
                                 waveclip(pulse_file, scaling*100000)
-                                resampled_signal(pulse_file)
+                                #resampled_signal(pulse_file)
 
 
 if __name__ == '__main__':
