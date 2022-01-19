@@ -173,7 +173,7 @@ frame_rate = wav.getframerate()
 wav.close()
 
 time_trace= read(spermwhale)
-time_data = np.arange(0, sound_info.size) / frame_rate
+time_data_whale = np.arange(0, sound_info.size) / frame_rate
 noise_whale = time_trace[1]
 noise_whale_f = np.fft.fft(noise_whale)
 norm = np.linalg.norm(noise_whale)
@@ -181,8 +181,8 @@ noise_whale = noise_whale/norm
 norm_f = np.linalg.norm(noise_whale_f)
 noise_whale_f = noise_whale_f/norm_f
 
-end_time_data = time_data[-1]                                      # [s]
-npts = len(time_data)-1
+end_time_data = time_data_whale[-1]                                      # [s]
+npts = len(time_data_whale)-1
 sampling_time_whale = end_time_data/npts
 
 
@@ -234,7 +234,7 @@ impResponse = np.real(im.imp_Impulse[0:im.imp_NFFT])
 convolved__t = scipy.signal.convolve(amplitude_data, impResponse, mode='full', method='auto')
 plt.figure(4);plt.clf()
 hgcc = plt.gcf().number
-f_fig, axs= plt.subplots(2, 1,sharex=False,sharey=False, num=hgcc)
+f_fig, axs= plt.subplots(3, 1,sharex=False,sharey=False, num=hgcc)
 f_fig.tight_layout()
 axs[0].plot(time_data,amplitude_data,label='Neutrino pulse. Fs = 200kHz')
 axs[0].legend(loc='upper center', shadow=True, fontsize='small')
@@ -246,7 +246,8 @@ axs[0].set_xlabel('t -> [s]')
 axs[0].set_ylabel('imp(t)')
 # plt.legend(Experiment)
 time2     = np.arange(0,len(convolved__t),1)*sampling_time
-axs[1].plot(time2,convolved__t,label='Convolved Neutrino pulse. Fs = ???')
+#axs[1].plot(time2,convolved__t,label='Convolved Neutrino pulse. Fs = ???')
+axs[1].plot(time, amplitude, label="signal")
 axs[1].legend(loc='upper center', shadow=True, fontsize='small')
 # axs[1].set_xlim(10,im.imp_Fs/2)
 # axs[1].set_ylim(-20,40)
@@ -256,6 +257,8 @@ axs[1].grid('on',which='major',axis='y')
 axs[1].set_title('Impulse response DUT')
 axs[1].set_xlabel('t -> [s]')
 axs[1].set_ylabel('imp_conv(t)')
+
+axs[2].plot(time_data_whale, noise_whale, label="noise")
 
 # %%
 # Matched filtering
@@ -281,13 +284,13 @@ imp = np.real(imp)
 noise_whale_f = np.resize(noise_whale_f, 131072)
 noise_whale_f = np.real(noise_whale_f)
 amplitude_f = np.resize(amplitude_f,len(noise_whale_f))
-amplitude_data = np.resize(amplitude_data_f, len(amplitude_f))
+amplitude_data = np.resize(amplitude_data, (len(amplitude_f)-1)*2)
 #amplitude_data = np.real(amplitude_data_f)
 #amplitude_data = np.resize(amplitude_data,(len(imp)-1)*2)
 amplitude_f = types.FrequencySeries(amplitude_f, 1/sampling_time)
 amplitude_f = amplitude_f.to_frequencyseries()
-amplitude_data = types.FrequencySeries(amplitude_data,1/sampling_time_data)
-amplitude_data = amplitude_data.to_frequencyseries()
+amplitude_data = types.TimeSeries(amplitude_data,delta_t=sampling_time_data/len(amplitude_data))#*len(amplitude_data))
+amplitude_data = amplitude_data.to_timeseries()
 imp = types.FrequencySeries(imp,im.imp_Fs)
 imp = imp.to_frequencyseries()
 noise_whale_f = types.FrequencySeries(noise_whale_f, 1/sampling_time_whale)
@@ -297,20 +300,22 @@ noise_whale_f = noise_whale_f.to_frequencyseries()
 #amplitude_data = amplitude_data.reshape(amplitude_data.size,)
 #amplitude = amplitude.reshape(amplitude.size,)
 #amplitude_data.resize(len(amplitude))
-print(amplitude_f.shape)
-print(amplitude_data.shape)
-print(noise_whale_f.shape)
+print("length signal",amplitude_f.shape)
+print("length data",amplitude_data.shape)
+print("length noise",noise_whale_f.shape)
 print(amplitude_f.dtype)
 print(amplitude_data.dtype)
 print(noise_whale_f.dtype)
-print(amplitude_f.delta_f)
-print(amplitude_data.delta_f)
-print(noise_whale_f.delta_f)
-print(1/sampling_time)
-print(1/sampling_time_data)
-print(1/sampling_time_whale)
+print("delta_f signal",amplitude_f.delta_f)
+print("delta_t data",amplitude_data.delta_t)
+print("delta_t given to data",sampling_time_data/len(amplitude_data))
+print("delta_f data",amplitude_data.delta_f)
+print("delta_f noise",noise_whale_f.delta_f)
+print("1/dt signal",1/sampling_time)
+print("1/dt data",1/sampling_time_data)
+print("1/dt noise",1/sampling_time_whale)
 snr_full = filt.matched_filter(amplitude_f, amplitude_data,noise_whale_f)
-ax.plot(snr_full.sample_times, abs(snr_full),
+ax.plot(snr_full.sample_times*len(amplitude_data), abs(snr_full),
             alpha=alpha)
 ax.legend()
 ax.set_title("matched filtering")
