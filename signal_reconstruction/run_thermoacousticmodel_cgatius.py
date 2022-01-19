@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 #scaling = pow(10, 168./20)                                                                                                                                                          
 sampling_rate = 144000.
-sampling_rate = 44100
+#sampling_rate = 44100
 
 def write_out(bipfilename, scaling, bmax, bmin):
     print("Generated file: ", bipfilename, scaling, bmax, bmin)
