@@ -12,6 +12,11 @@
 import numpy as np
 import math as m
 import matplotlib.pyplot as plt
+from my_styles import *
+
+set_paper_style()
+
+plt.style.use('/home/gebruiker/AcousticNeutrinos/filtering/Ed_scripts/cecile.mplstyle')
 plt.rcParams.update({'font.size': 17})
 plt.rcParams["figure.figsize"] = (8.5,9)
 plt.rcParams["figure.dpi"] = 100
@@ -23,7 +28,7 @@ do_plot_dEdz = True                       #plot dEdz
 do_plot_dEdz_1_shower = False               #plot dEdz for single showers
 do_plot_dEdr = True                       #plot dEdr
 do_plot_dEdr_1_shower = False              #plot dEdr for single showers
-create_file = True                        #create file mean dEdzdr
+create_file = False                       #create file mean dEdzdr
 create_file_1_shower = False                #create file dEdzdr 1 shower (for e.m. showers)
 do_plot_peakdEdz = False                   #plot peak dEdz as a function of energy
 check_energy_deposit_particle_type = False
@@ -35,7 +40,7 @@ models_select = [0] #select specific models
 
 num_showers_input = 100
 num_showers_plot = 100
-energies = np.arange(11,12) #exponent energy (in GeV)
+energies = np.arange(9,12) #exponent energy (in GeV)
 facts_energy = np.asarray([1]) #multiplicative factor energy
 depth = np.arange(10,20010,20) #g/cm2
 electromagnetic = False #if shower is electromagnetic
@@ -139,7 +144,7 @@ for energy in energies:
             #-----from dEdr...dat file---
             #name_file_dr = 'cg_dEdr_{:01d}{:02d}{:02d}_lowestEcuts.dat'.format(fact_energy,energy,model)
             #name_file_dr = 'cg_dEdr_{:01d}{:02d}00_lowestEcuts.dat'.format(fact_energy,energy)
-            name_file_dr = 'cg_dEdr_11106_150.dat' 
+            name_file_dr = '/home/gebruiker/AcousticNeutrinos/signal_reconstruction/output_cs_inputs_Sloan_QGSJET_1e'+str(energy)+'.dat' 
             f_dr = open(name_file_dr, 'r')
             lines_dr = f_dr.readlines()
             dEdzdr = np.zeros((num_showers_input,1000,20))    #array dEdzdr per shower (from dEdr...dat file)
@@ -175,8 +180,8 @@ for energy in energies:
 
                     #check if:   sum lateral energy deposit / depth_i   =   logi energy deposit / depth_i   (to check correctness of lateral distr. modf)
                     diff_dep_ener[idx_shower][idx_line] = (dEdz_long[idx_shower][idx_line] - (np.sum(dEdzdr[idx_shower][idx_line])+float(string_line_dr[21])))/dEdz_long[idx_shower][idx_line]*100
-                    if diff_dep_ener[idx_shower][idx_line] > 1.0: #if difference bigger than 1% -> print
-                        print(idx_shower, idx_line, dEdz[idx_shower][idx_line], (np.sum(dEdzdr[idx_shower][idx_line])+float(string_line_dr[21])), diff_dep_ener[idx_shower][idx_line])
+                    #if diff_dep_ener[idx_shower][idx_line] > 1.0: #if difference bigger than 1% -> print
+                        #print(idx_shower, idx_line, dEdz[idx_shower][idx_line], (np.sum(dEdzdr[idx_shower][idx_line])+float(string_line_dr[21])), diff_dep_ener[idx_shower][idx_line])
 
                     if check_energy_deposit_particle_type == True:
                         dEdz_particle_type[idx_shower,idx_line,0] = float(string_line_dz[1])
@@ -207,7 +212,7 @@ for energy in energies:
 
 
                 if create_file_1_shower == True:
-                    name_file_1 = 'cs_dEdzdr_11106_150.dat' 
+                    name_file_1 = 'output_cs_inputs_Sloan_QGSJET_1e'+str(energy)+'.dat'
                     #name_file_1 = 'cg_dEdzdr_shower{:}_DAT{:02d}{:02d}{:02d}_e_lowestEcuts.dat'.format(idx_shower,fact_energy,energy,model)
                     np.savetxt(name_file_1,dEdzdr[idx_shower,:,:],fmt='%1.4e') 
 
@@ -236,7 +241,7 @@ for energy in energies:
             #create file with averaged dEdzdr
             if create_file == True:
                 #name_file_1 = 'cg_mean_dEdzdr_{:s}_DAT{:02d}{:02d}{:02d}_lowestEcuts.dat'.format(str(num_showers_input),fact_energy,energy,model)
-                name_file_1 = 'cs_mean_dEdzdr_11106_150.dat'
+                name_file_1 = 'cs_mean_dEdzdr_'+str(energy)+'.dat'
                 """
                 mean_dEdzdr_modif = np.zeros((1000,20))
                 radial_steps =  np.concatenate((np.arange(0.5,10.5,1.0),np.arange(10.5,105,10)))/(10**(2)) #cm to m, bin center
@@ -261,11 +266,20 @@ for energy in energies:
             #plot averaged dEdz
             if do_plot_dEdz == True:
                 fig1 = plt.figure(num = 'Average E')
-                plt.plot(depth/(1.025*10**2),mean_dEdz_long/(10**energy)*1.025*10**2/20,c=colors[idx_model-1],ls=linestyle[idx_model],label=model_name)
-                plt.plot(depth/(1.025*10**2),np.sum(mean_dEdzdr,1)*1.025*10**2/20,label=model_name)
-                if model == 0: plt.plot(depth/(1.025*10**2),mean_dEdz_long*1.025*10**2/20,ls=linestyle[idx_model],label=model_name)
-                else: plt.plot(depth/(1.025*10**2),mean_dEdz_long*1.025*10**2/20,c=colors[idx_model-1],ls=linestyle[idx_model],label=model_name)
-                #plt.plot(depth/(1.025*10**2),np.sum(mean_dEdzdr_2,1)*1.025*10**2/20,':',label=model_name+', 3MeV cuts')
+                plt.plot(depth/(1.025*10**2),mean_dEdz_long/(10**energy)*1.025*10**2/20,ls=linestyle[idx_model],label = 'E=1e'+str(energy))#label=model_name)
+                #plt.plot(depth/(1.025*10**2),np.sum(mean_dEdzdr,1)*1.025*10**2/20,label=model_name)
+                #if model == 0: plt.plot(depth/(1.025*10**2),mean_dEdz_long*1.025*10**2/20,ls=linestyle[idx_model],label = 'E=1e'+str(energy))#label=model_name)
+                #else: plt.plot(depth/(1.025*10**2),mean_dEdz_long*1.025*10**2/20,c=colors[idx_model-1],ls=linestyle[idx_model],label = 'E=1e'+str(energy))#label=model_name)
+
+            plt.title('hadronic shower: E ={:d}e{:d} GeV'.format(fact_energy,energy),loc='right')
+            #plt.title('ν'+neutrinos[neutrino_type]+':  $E_{prim} = $'+"1e{:d} GeV".format(energy)+'$, N_{showers}$='+'{:d}'.format(num_showers_input),loc='right')
+            #plt.ylabel("Energy deposition ($GeV \; / \; 20 \, gcm^{-2}$)")
+            #plt.xlabel("Shower depth ($gcm^{-2}$)")
+            plt.ylabel("longitudinal energy deposition (GeV/m)")
+            plt.xlabel("z (m)")
+            plt.xlim(0,20)       #plt.plot(depth/(1.025*10**2),np.sum(mean_dEdzdr_2,1)*1.025*10**2/20,':',label=model_name+', 3MeV cuts')
+            plt.legend()
+            plt.show()
 
             #check longi energy deposit by particle type
             if check_energy_deposit_particle_type == True:
@@ -295,7 +309,7 @@ for energy in energies:
 
         #LONGITUDINAL PROFILE N SHOWERS
         if do_plot_dEdz == True or check_energy_deposit_particle_type == True: #plot longitudinal distribution N_showers-averaged
-            plt.plot(longi_steps/(1.025*10**2),dEdz_par*1.025*10**2,ls=linestyle[3],c=colors[4],label='ACoRNE \n parametrisation')
+            #plt.plot(longi_steps/(1.025*10**2),dEdz_par*1.025*10**2,ls=linestyle[3],c=colors[4],label='ACoRNE \n parametrisation')
             plt.legend(loc='upper right')
             plt.title('hadronic shower: E ={:d}e{:d} GeV'.format(fact_energy,energy),loc='right')
             #plt.title('ν'+neutrinos[neutrino_type]+':  $E_{prim} = $'+"1e{:d} GeV".format(energy)+'$, N_{showers}$='+'{:d}'.format(num_showers_input),loc='right')
@@ -319,6 +333,7 @@ for energy in energies:
             #plt.show()
             #plt.savefig("si.png",dpi=200)
             plt.savefig('cg_{:s}FIG{:02d}{:02d}{:02d}_p_particletype.png'.format(str(num_showers_plot)+"_",fact_energy,energy,model),dpi=300)
+            plt.show()
             #plt.close() 
 
 
@@ -404,16 +419,16 @@ for energy in energies:
                 #plt.legend(loc='lower left')
                 plt.yscale("log")
                 #plt.xscale("log")
-                plt.xlim(0,40)
+                plt.xlim(0,1000)
                 plt.ylim(10**(-3),2)
 
                 #plt.ylim(2*10**(4),7*10**(9))
                 #plt.ylabel("Energy deposition ($GeV \; / \; g^{2}cm^{-4}$)")
                 #plt.xlabel("r ($gcm^{-2}$)")
-                plt.ylabel("radial energy deposition (GeV/m)")
-                plt.ylabel("normalised radial energy deposition")
+                plt.ylabel("Radial energy deposition (GeV/m)")
+                #plt.ylabel("normalised radial energy deposition")
                 plt.xlabel("r (m)")
-                plt.xlabel("r (cm)")
+                #plt.xlabel("r (cm)")
                 plt.tight_layout()
                 plt.savefig('cg_{:s}FIG{:02d}{:02d}{:02d}_p_dEdr_radial.png'.format(str(num_showers_input)+"_",fact_energy,energy,model))
             plt.show()

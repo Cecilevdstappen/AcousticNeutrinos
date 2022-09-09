@@ -4,10 +4,11 @@ import numpy.fft as fft
 import sys
 from scipy import signal
 import matplotlib.pyplot as plt
+import pickle
 
 #scaling = pow(10, 168./20)                                                                                                                                                          
 sampling_rate = 144000.
-#sampling_rate = 44100
+
 
 def write_out(bipfilename, scaling, bmax, bmin):
     print("Generated file: ", bipfilename, scaling, bmax, bmin)
@@ -21,19 +22,19 @@ def resampled_signal(filename):
 
     Fs = 1/(time[1] - time [0])
     Fs_resampled = 144000.
-    Fs_resampled = 44590
+   
 
     number_resampled = int(round(len(bip)*Fs_resampled/Fs))
 
     bip_resampled = signal.resample(bip, number_resampled)
-    t_resampled   = np.linspace(0, len(bip_resampled)/Fs_resampled,
+    t_resampled   = np.linspace(0, (len(bip_resampled)-1)/Fs_resampled,
                                 len(bip_resampled))
     return t_resampled, bip_resampled
 
 def waveclip(bipfilename, scaling):
     np.random.seed(scaling)
     from scipy.io.wavfile import read
-    noisefile = "spermwhale.wav"
+    noisefile = "1678020614.180210165811.wav"
     time_trace = read(noisefile)
     sampling_rate = time_trace[0]
     print (sampling_rate)
@@ -95,8 +96,8 @@ def main(argv):
     facts_energy = np.asarray([1]) #multiplicative factor energy                                                                                                                    
 
     #hydrophone positions we want to explore                                                                                                                                        
-    hydrophone_rpos = [1000] #in meters, r=0 axis shower                                                                                                                            
-    hydrophone_zpos = [12] #in meters, z=0 interaction point                                                                                                                         
+    hydrophone_rpos = [150] #in meters, r=0 axis shower                                                                                                                            
+    hydrophone_zpos = [6] #in meters, z=0 interaction point                                                                                                                         
 
     #shower energy loop                                                                                                                                                             
     for idx_e,energy in enumerate(energies):

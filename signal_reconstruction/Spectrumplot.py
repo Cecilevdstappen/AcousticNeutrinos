@@ -16,7 +16,7 @@ def get_data(filename):
 
 def main():
     #file1 = 'spectrum_11_1000_6_.dat' 
-    file1 = 'neutrino_12.0_1000_1_11.dat'
+    file1 = '/home/gebruiker/AcousticNeutrinos/filtering/Ed_scripts/neutrino_6_300.dat'
     x,y = get_data(file1)
     x_kHz = x*(10**-3)
     plt.plot(x_kHz, y, linewidth=1.5, label = 'proton shower')
@@ -32,7 +32,7 @@ def main():
     plt.title(str(file1)) 
     #plt.savefig("mc_points.png", dpi=200)
     #plt.savefig("energy_depo_05.png" , dpi = 200
-    plt.savefig("spectrum_11_1000_6_spermwhale.png")
+    plt.savefig("spectrum_6_300.png")
     plt.show()
 
 if __name__ == "__main__":
