@@ -32,16 +32,16 @@ from SNR import resample_by_interpolation
 ### data_td, noise plus signal.
 # data file is just one column. Sample freq is 144kHz
 L_max_snr = []
-scale = 71
-for z_data in np.arange(-8,10,2):
-    zpos = float(z_data)
-    ypos = 300
+scaling = 1
+rpos = 300
+zpos = 6
+energy = 11
+transfer_function =False
+for z_data in np.arange(0,21,1):
+#    if zpos <= 8:
+    data_file = '../Neutrino_data_files/neutrino_'+str(float(z_data))+'_'+str(rpos)+'_1_'+str(energy)+'_'+str(scaling)+'.txt'
     
-    transfer_function = False
-    plot_signal_data=False
     
-    
-    data_file = '../Neutrino_data_files/neutrino' + '_' + str(z_data)+'_300_100fixed_highpass.txt' #'whitenoise.txt'
     data = np.loadtxt(data_file,  usecols=(0), dtype='float', unpack=True)  
     noise_signal_td = data
     
@@ -53,45 +53,13 @@ for z_data in np.arange(-8,10,2):
     
     #########################################################################
     
-    psd_1 = np.ones(len(noise_signal_td))
-    psd_1 = types.FrequencySeries(psd_1, 1.0986328125)
-    
-    #psd = np.linspace(1,0, len(noise_signal_td))
-    noise_file = 'output001.wav'
-    #noise_file = "white_noise_144kHz.wav"
-    wav = wave.open(noise_file, 'r')
-    frames = wav.readframes(-1)
-    sound_info = np.frombuffer(frames,dtype='int16')
-    frame_rate = wav.getframerate()
-    wav.close()
-    
-    time_trace= read(noise_file)
-    time_data_whale = np.arange(0, sound_info.size) / frame_rate
-    noise_whale = time_trace[1]
-    noise_whale = np.resize(noise_whale,len(noise_signal_td))
-    dt = 1/144000.
-    noise_td = types.TimeSeries(noise_whale, dt)
-    noise_fd = abs(noise_td.to_frequencyseries())
-    
     flow = 20.; fhigh= 30000.
-    
-    
-    
-    
-    #    f, Pxx_den = sg.periodogram(noise_whale, fs=144000., nfft=512)
-    #    Pxx_den = resample_by_interpolation(Pxx_den,257,65537)
-    #    psd_period = types.FrequencySeries(Pxx_den, noise_fd.delta_f)
-    
-    #psd_scipy = psd.interpolate(p_scipy, noise_fd.delta_f)
-    #psd_scipy = psd.inverse_spectrum_truncation(psd_scipy, int(dt*512*noise_td.sample_rate),low_frequency_cutoff=flow)
-    
-    
     
     #########################################################################
     ### template is a theoretical prediction
     ## Q1 amplitude schalen?
     ## Q2 lengte tijdsas en offset?
-    template_file = '../Neutrino_data_files/neutrino_'+str(z_data) +'_300.dat'
+    template_file = '../Neutrino_data_files/neutrino_'+str(float(zpos))+'_'+str(rpos)+'_1_'+str(energy)+'.dat'
     #template_file = 'neutrino_6_300.dat'
     data = np.loadtxt(template_file,  usecols=(0,1), dtype='float', unpack=True)  
     time = data[0]
@@ -103,7 +71,7 @@ for z_data in np.arange(-8,10,2):
         # frf.pz2tf((375,12000,17000),(0.15,0.02,0.07),100000) # hydrophone with cap
         frf.pz2tf((375,12000),(0.1,0.03),144000) # hydrophone without cap
         # frf.pz2tf((12000,375),(0.02,0.1),100000) # hydrophone without cap
-        frf.mbutton.on()
+        #frf.mbutton.on()
         amplitude_og = sg.lfilter(frf.num,frf.dnum,amplitude_og)
         noise_signal_td = sg.lfilter(frf.num,frf.dnum,noise_signal_td)
         
@@ -120,34 +88,19 @@ for z_data in np.arange(-8,10,2):
     L_psd_inter = []
     L_psd_seg = []
     L_psd_scipy = []
-    L_segment = [131072]#[131072,65536,16384,2048,256,128,8]
+    L_segment = [2048]#[131072,65536,16384,2048,256,128,8]
     for i in L_segment:
         seg_len = i
-        p_estimated = noise_td.psd(dt*i, avg_method='mean',  window='hann') #data_td.sample_times[-1]/512
-        p = psd.interpolate(p_estimated, noise_fd.delta_f)
-        p = psd.inverse_spectrum_truncation(p, int(dt*seg_len*noise_td.sample_rate),low_frequency_cutoff=flow)
+        p_estimated = data_td.psd(dt*i, avg_method='mean',  window='hann') #data_td.sample_times[-1]/512
+        p = psd.interpolate(p_estimated, data_td.delta_f)
+        p = psd.inverse_spectrum_truncation(p, int(dt*seg_len*data_td.sample_rate),low_frequency_cutoff=flow)
         psd_inter = p
         L_psd_inter.append(psd_inter)
        
-        seg_stride = int(seg_len/2)
-        estimated_psd = psd.welch(noise_td,seg_len=seg_len,seg_stride=seg_stride, window='hann')
-        psd_seg = psd.interpolate(estimated_psd, noise_fd.delta_f)
-        psd_seg = psd.inverse_spectrum_truncation(psd_seg, int(dt*seg_len*noise_td.sample_rate),low_frequency_cutoff=flow)
-        L_psd_seg.append(psd_seg)
-        
-        nr_seg = i/2 +1
-        f, Pxx_den= sg.welch(noise_whale, fs=144000., nperseg=i, average='mean')
-        psd_scipy_estimated = types.FrequencySeries(Pxx_den, f[1]-f[0])
-        Pxx_den = resample_by_interpolation(Pxx_den,nr_seg,65537)
-        psd_scipy = types.FrequencySeries(Pxx_den, noise_fd.delta_f)
-        L_psd_scipy.append(psd_scipy)
+
         
         #pp.plot(psd_scipy.sample_frequencies, psd_scipy, label = "segment length %.0f"%i)
-        pp.plot(psd_inter.sample_frequencies, psd_inter, label="segment length %.0f"%i)
-        #pp.plot(psd_inter.sample_frequencies, psd_inter, label = "segment length %.0f"%i)
-    pp.plot(p_estimated.sample_frequencies, p_estimated,"o", markersize=0.5,label = "psd zonder interpolate")
-    #pp.plot(psd_period.sample_frequencies, psd_period, label = "psd period")
-    
+        pp.plot(psd_inter.sample_frequencies, psd_inter, label="segment length %.0f"%i)    
     pp.title("Estimated psd")
     pp.yscale('log')
     pp.xscale('log')
@@ -170,10 +123,6 @@ for z_data in np.arange(-8,10,2):
         max_snr = 0.
         #for fhigh in np.arange(8000,30000,100): 
         snr_inter = matched_filter(template, data_td, psd = L_psd_inter[j],low_frequency_cutoff=flow,high_frequency_cutoff=fhigh)
-        #snr_seg = matched_filter(template, data_td, psd = L_psd_seg[j],low_frequency_cutoff=flow,high_frequency_cutoff=fhigh)
-        #snr_scipy = matched_filter(template, data_td, psd = L_psd_scipy[j],low_frequency_cutoff=flow,high_frequency_cutoff=fhigh)
-        #snr_1 = matched_filter(template, data_td, psd = psd_1,low_frequency_cutoff=flow,high_frequency_cutoff=fhigh)
-        #snr_period = matched_filter(template, data_td, psd = psd_period,low_frequency_cutoff=flow,high_frequency_cutoff=fhigh)
         pk, pidx = snr_inter.abs_max_loc()
         peak_t = snr_inter.sample_times[pidx]
         L_fhigh.append(fhigh)
@@ -187,10 +136,6 @@ for z_data in np.arange(-8,10,2):
     
         
         ax.plot(snr_inter.sample_times, abs(snr_inter), label="%.0f"%L_segment[j])
-        #ax.plot(snr_seg.sample_times, abs(snr_seg), label="%.0f"%L_segment[j])
-    #    ax.plot(snr_scipy.sample_times, abs(snr_scipy), label='psd_scipy')
-    #ax.plot(snr_1.sample_times, abs(snr_1), label='psd=1')
-    #    ax.plot(snr_period.sample_times, abs(snr_period), label='psd=period')
     ax.legend()
     ax.set_title("matched filtering timeseries")
     ax.grid()
@@ -202,27 +147,8 @@ for z_data in np.arange(-8,10,2):
     pp.show()
     pp.close()
     
-    if plot_signal_data==True:
-        pp.figure(14)
-        pp.clf()
-        pp.plot(time, amplitude_og, label ="transfer function signal")
-        pp.grid('on',which='both',axis='x')
-        pp.grid('on',which='both',axis='y')
-        pp.title('Impulse response signal')
-        pp.xlabel('time (s)')
-        pp.ylabel('Amplitude (mPa)')
-        pp.legend()
-        pp.show()
-        
-        pp.figure(13)
-        pp.clf()
-        pp.plot(noise_signal_times,noise_signal_td, label ="transfered data")
-        pp.grid('on',which='both',axis='x')
-        pp.grid('on',which='both',axis='y')
-        pp.title('Impulse response data')
-        pp.xlabel('t -> [s]')
-        pp.legend()
-        pp.show()
+    
+
     
 
 

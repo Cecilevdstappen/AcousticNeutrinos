@@ -15,6 +15,10 @@ from sippy import *
 import numpy as np
 import control.matlab as cnt
 import matplotlib.pyplot as plt
+from my_styles import *
+set_paper_style()
+
+plt.style.use('/home/gebruiker/AcousticNeutrinos/filtering/Ed_scripts/cecile.mplstyle')
 
 #load Matlab mat file and extract 'Datamat' structure Enkel_3FF_Atran_Sweep200Hz20kHz0degreev1
 #Datamat_Dubbel_1FF_Actran_Sweep200Hz20kHz0degree_AfterPressure_v2

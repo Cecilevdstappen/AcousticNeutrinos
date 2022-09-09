@@ -26,6 +26,7 @@ Ts   = 1./im.imp_Fs
 b    = [1,0,0]
 pole = discrete_2ndOrder_pole(im,zeta,f,Ts) #member of class impulse
 a    = np.poly([pole,np.conjugate(pole)])
+print(a)
 #Input signal is a random white noise vector
 u    = 0.5-np.random.rand(im.imp_length)
 #Output is the response of the artificial DUT

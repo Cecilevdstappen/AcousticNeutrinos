@@ -9,6 +9,7 @@ from __future__ import division
 from impulse import *
 import sys 
 sys.path.insert(0, '/home/gebruiker/SIPPY')
+sys.path.insert(0, '/home/gebruiker/AcousticNeutrinos/filtering/design_FRF')
 #!{sys.executable} -m pip install pycbc lalsuite ligo-common --no-cache-dir
 from IPython.display import Math
 from matplotlib import pyplot as plt, rc, cycler
@@ -30,6 +31,12 @@ import control.matlab as cnt
 import matplotlib.pyplot as plt
 from scipy.io.wavfile import read
 import wave
+from my_styles import *
+from design_FRF import *
+from scipy import signal
+set_paper_style()
+
+plt.style.use('/home/gebruiker/AcousticNeutrinos/filtering/Ed_scripts/cecile.mplstyle')
 
 #load Matlab mat file and extract 'Datamat' structure Enkel_3FF_Atran_Sweep200Hz20kHz0degreev1
 #Datamat_Dubbel_1FF_Actran_Sweep200Hz20kHz0degree_AfterPressure_v2
@@ -64,21 +71,22 @@ d_ln1 = np.arange(0, nPlot, dtype=object)
 plt.figure(num=hgcr, clear=True)
 d_fig, d_axs = plt.subplots(nPlot, 1, num=hgcr)
 n_chl = 0
-for Chnl in np.arange(rChnl):
+L_string = ['Impulse response sweep', 'Sweep']
+for i, Chnl in enumerate(np.arange(rChnl)):
     d_ln1[n_chl] = d_axs[n_chl].plot(
-        tRaw, (trace[:, Chnl]),'r', label='Fs = 100 kHz')
-    d_axs[n_chl].legend(loc='upper center', shadow=True, fontsize='medium')
+        tRaw, (trace[:, Chnl]), label='Fs = 100 kHz')
+    d_axs[n_chl].legend(loc='upper right', shadow=True, fontsize=10)
     stdev = (np.std(trace[:, n_chl]))
-    str = " %s   $\sigma$ = %6.4e %s    " % (Name[Chnl],stdev, Unit[Chnl]);
+    str = " %s   $\sigma$ = %6.4e $\mu$%s    " % (L_string[i],stdev, 'Pa');
     d_axs[n_chl].set_title(str)
-    str = "%s -> [%s] " % (Name[Chnl], Unit[Chnl]);
+    str = "%s ($\mu$%s) " % ('Amplitude', 'Pa');
     d_axs[n_chl].set_ylabel(str)
     d_axs[n_chl].autoscale(tight=True)
     d_axs[n_chl].grid()
     d_axs[n_chl].grid('on', 'minor')
     n_chl += 1
-d_axs[n_chl-1].set_xlabel('time ->[s]')
-d_axs[1].set_title(Experiment,loc='left')
+d_axs[n_chl-1].set_xlabel('Time (s)')
+#d_axs[1].set_title(Experiment,loc='left')
 d_fig.tight_layout()
 plt.show()
 # %%
@@ -96,64 +104,82 @@ ImpulseResponse(im,1,0) #member of class impulse
 #Plot the result
 plt.figure(2);plt.clf()
 hgca = plt.gcf().number
-f_fig, axs= plt.subplots(5, 1,sharex=False,sharey=False, num=hgca)
+f_fig, axs= plt.subplots(2, 1,sharex=True,sharey=False, num=hgca)
 f_fig.tight_layout()
-axs[0].stem(np.real(im.imp_Impulse[0:im.imp_NFFT]),label='Estimated Impulse response DUT. Fs = 100kHz')
-axs[0].legend(loc='upper center', shadow=True, fontsize='x-small')
-axs[0].minorticks_on()
-axs[0].grid('on',which='both',axis='x')
-axs[0].grid('on',which='major',axis='y')
-axs[0].set_title(Experiment)
-axs[0].set_xlabel('tau -> []')
-axs[0].set_ylabel('h(tau)')
+#axs[0].stem(np.real(im.imp_Impulse[0:im.imp_NFFT]),label='Estimated Impulse response DUT. Fs = 100 kHz')
+#axs[0].legend(loc='upper center', shadow=True, fontsize='x-small')
+#axs[0].minorticks_on()
+#axs[0].grid('on',which='both',axis='x')
+#axs[0].grid('on',which='major',axis='y')
+#axs[0].set_title(Experiment)
+#axs[0].set_xlabel('tau -> []')
+#axs[0].set_ylabel('h(tau)')
 
 # plt.legend(Experiment)
-
+frf = design_FRF(Fs=144000)
+frf.pz2tf((375,12000),(0.1,0.03),144000) # hydrophone without cap
+model = signal.lfilter(frf.num, frf.dnum, abs(im.imp_Txy[0:int(im.imp_NFFT)]))
 IFFT = int(im.imp_NFFT/2)
 sx   = np.fft.fft((im.imp_Impulse[0:im.imp_NFFT]))
 freq = np.arange(0,IFFT)*im.imp_Fs/im.imp_NFFT
-axs[1].semilogx(freq,20.*np.log10(abs(sx[0:int(IFFT)])),label='Verification. |FRF| of the Impulse response')
+freq2 = np.arange(0,im.imp_NFFT)*0.5*im.imp_Fs/im.imp_NFFT
+axs[0].semilogx(freq2[0:int(im.imp_NFFT)],20.*np.log10(abs(im.imp_Txy[0:int(im.imp_NFFT)])))
+axs[0].legend(loc='upper center', shadow=True, fontsize='x-small')
+axs[0].set_xlim(10,im.imp_Fs/2)
+axs[0].set_ylim(-20,40)
+#axs[0].set_xlabel('Frequency (Hz)')
+axs[0].minorticks_on()
+axs[0].grid('on',which='both',axis='x')
+axs[0].grid('on',which='major',axis='y')
+#axs.text(367,-10,'$\uparrow$ Helmholtz resonance',fontsize = 9)
+#axs.text(13900,-10,'Mechanical eigenfrequency $\uparrow$',fontsize = 9)
+axs[0].set_ylabel('')
+axs[0].set_ylabel('$T_{xy}$ (dB Re 1 $\mu$Pa/$\mu$Pa)',fontsize = 'small')
+axs[0].set_title('Measured transfer function')
+
+axs[1].semilogx(freq2[0:int(im.imp_NFFT)],model) #20.*np.log10(abs(sx[0:int(IFFT)]))
 axs[1].legend(loc='upper center', shadow=True, fontsize='x-small')
 axs[1].set_xlim(10,im.imp_Fs/2)
 axs[1].set_ylim(-20,40)
 axs[1].minorticks_on()
 axs[1].grid('on',which='both',axis='x')
 axs[1].grid('on',which='major',axis='y')
-axs[1].set_title('FRF impulse response DUT')
-axs[1].set_ylabel('FRF(f)')
+axs[1].set_title('Modelled transfer function')
+axs[1].set_ylabel('$T_{xy}$ (dB Re 1 $\mu$Pa/$\mu$Pa)')
+axs[1].set_xlabel('Frequency (Hz)')
 
-axs[2].semilogx(freq,180.*np.unwrap(np.angle((sx[0:int(IFFT)])))/np.pi,label='Verification. phase(FRF) of the Impulse response')
-axs[2].legend(loc='lower center', shadow=True, fontsize='x-small')
-axs[2].set_xlim(10,im.imp_Fs/2)
-# axs[2].set_ylim(-20,40)
-axs[2].minorticks_on()
-axs[2].grid('on',which='both',axis='x')
-axs[2].grid('on',which='major',axis='y')
-axs[2].set_title('Phase impulse response DUT')
-axs[2].set_ylabel('angel(f)')
+#axs[2].semilogx(freq,180.*np.unwrap(np.angle((sx[0:int(IFFT)])))/np.pi,label='Verification. phase(FRF) of the Impulse response')
+#axs[2].legend(loc='lower center', shadow=True, fontsize='x-small')
+#axs[2].set_xlim(10,im.imp_Fs/2)
+## axs[2].set_ylim(-20,40)
+#axs[2].minorticks_on()
+#axs[2].grid('on',which='both',axis='x')
+#axs[2].grid('on',which='major',axis='y')
+#axs[2].set_title('Phase impulse response DUT')
+#axs[2].set_ylabel('angel(f)')
 
 
-freq2 = np.arange(0,im.imp_NFFT)*0.5*im.imp_Fs/im.imp_NFFT
-axs[3].semilogx(freq2[0:int(im.imp_NFFT)],20.*np.log10(abs(im.imp_Txy[0:int(im.imp_NFFT)])),label='Estimated Txy of time traces')
-axs[3].legend(loc='lower center', shadow=True, fontsize='x-small')
-axs[3].set_xlim(10,im.imp_Fs/2)
-axs[3].set_ylim(-20,40)
-axs[3].minorticks_on()
-axs[3].grid('on',which='both',axis='x')
-axs[3].grid('on',which='major',axis='y')
-axs[3].set_title('Txy response DUT')
-axs[3].set_ylabel('Txy(f)')
+#freq2 = np.arange(0,im.imp_NFFT)*0.5*im.imp_Fs/im.imp_NFFT
+#axs[3].semilogx(freq2[0:int(im.imp_NFFT)],20.*np.log10(abs(im.imp_Txy[0:int(im.imp_NFFT)])),label='Estimated Txy of time traces')
+#axs[3].legend(loc='lower center', shadow=True, fontsize='x-small')
+#axs[3].set_xlim(10,im.imp_Fs/2)
+#axs[3].set_ylim(-20,40)
+#axs[3].minorticks_on()
+#axs[3].grid('on',which='both',axis='x')
+#axs[3].grid('on',which='major',axis='y')
+#axs[3].set_title('Txy response DUT')
+#axs[3].set_ylabel('Txy(f)')
 
-freq2 = np.arange(0,im.imp_NFFT)*0.5*im.imp_Fs/im.imp_NFFT
-axs[4].semilogx(freq2[0:int(im.imp_NFFT)],(abs(im.imp_Cxy[0:int(im.imp_NFFT)])),label='Coherence function  of the estimated Txy of time traces')
-axs[4].legend(loc='lower center', shadow=True, fontsize='x-small')
-axs[4].set_xlim(10,im.imp_Fs/2)
-axs[4].minorticks_on()
-axs[4].grid('on',which='both',axis='x')
-axs[4].grid('on',which='major',axis='y')
-axs[4].set_title('Coherence function DUT')
-axs[4].set_xlabel('F -> [Hz]')
-axs[4].set_ylabel('Cxy(f)')
+#freq2 = np.arange(0,im.imp_NFFT)*0.5*im.imp_Fs/im.imp_NFFT
+#axs[4].semilogx(freq2[0:int(im.imp_NFFT)],(abs(im.imp_Cxy[0:int(im.imp_NFFT)])),label='Coherence function  of the estimated Txy of time traces')
+#axs[4].legend(loc='lower center', shadow=True, fontsize='x-small')
+#axs[4].set_xlim(10,im.imp_Fs/2)
+#axs[4].minorticks_on()
+#axs[4].grid('on',which='both',axis='x')
+#axs[4].grid('on',which='major',axis='y')
+#axs[4].set_title('Coherence function DUT')
+#axs[4].set_xlabel('F -> [Hz]')
+#axs[4].set_ylabel('Cxy(f)')
 
 # %%
 # Define white noise as noise signal
@@ -165,7 +191,8 @@ plt.figure(3);plt.clf();cnt.bode(gtf,Hz=1)
 plt.show()
 # %%
 # Spermwhale file as noise signal
-spermwhale = 'spermwhale.wav'
+#spermwhale = '1678020614.180210165811.wav'
+spermwhale = 'output001.wav'
 wav = wave.open(spermwhale, 'r')
 frames = wav.readframes(-1)
 sound_info = np.frombuffer(frames,dtype='int16')
@@ -188,7 +215,7 @@ sampling_time_whale = end_time_data/npts
 
 # %%
 #filename_sig = 'neutrino_12.0_1000_1_11.dat'
-filename_sig = 'neutrino_resampled.dat'
+filename_sig = 'neutrino_6.0_150_1_11_144kHz.dat'
 f = open(filename_sig,'r')
 lines = f.readlines()
 time = [] #s
@@ -197,6 +224,7 @@ dtypes = [('col0', float)]+[('col1', np.complex128)]
 data = np.loadtxt(filename_sig,  usecols=(0,1), dtype=dtypes, unpack=True)#,  dtype='float,np.complex128)
 time = data[0]
 amplitude = data[1]
+amplitude = np.pad(amplitude, (1048567-len(amplitude),0))
 amplitude_f = np.fft.fft(amplitude)
 norm = np.linalg.norm(amplitude)
 amplitude = amplitude/norm
@@ -205,10 +233,16 @@ amplitude_f = amplitude_f/norm_f
 
 end_time = time[-1]                                      # [s]
 npts = len(time)-1
+print ('endtime', end_time)
+print('len time -1', npts)
 sampling_time = end_time/npts
+sampling_time = 1/144000
+
+
 # %%
 
-filename_sig_bkg = 'neutrino_12.0_1000_1_11_10000000.wav' 
+#filename_sig_bkg = 'neutrino_6.0_150_1_11_144kHz_10000000.wav' 
+filename_sig_bkg = 'neutrino_6_300_100.wav'
 wav = wave.open(filename_sig_bkg, 'r')
 frames = wav.readframes(-1)
 sound_info = np.frombuffer(frames,dtype='int16')
@@ -236,7 +270,7 @@ plt.figure(4);plt.clf()
 hgcc = plt.gcf().number
 f_fig, axs= plt.subplots(3, 1,sharex=False,sharey=False, num=hgcc)
 f_fig.tight_layout()
-axs[0].plot(time_data,amplitude_data,label='Neutrino pulse. Fs = 200kHz')
+axs[0].plot(time_data,amplitude_data,label='signal + bkg. Fs = 144kHz')
 axs[0].legend(loc='upper center', shadow=True, fontsize='small')
 axs[0].minorticks_on()
 axs[0].grid('on',which='both',axis='x')
@@ -246,8 +280,10 @@ axs[0].set_xlabel('t -> [s]')
 axs[0].set_ylabel('imp(t)')
 # plt.legend(Experiment)
 time2     = np.arange(0,len(convolved__t),1)*sampling_time
+signal_times = np.arange(0, len(amplitude), 1)
+signal_times = signal_times/144000.
 #axs[1].plot(time2,convolved__t,label='Convolved Neutrino pulse. Fs = ???')
-axs[1].plot(time, amplitude, label="signal")
+axs[1].plot(signal_times, amplitude, label="signal")
 axs[1].legend(loc='upper center', shadow=True, fontsize='small')
 # axs[1].set_xlim(10,im.imp_Fs/2)
 # axs[1].set_ylim(-20,40)
@@ -258,73 +294,34 @@ axs[1].set_title('Impulse response DUT')
 axs[1].set_xlabel('t -> [s]')
 axs[1].set_ylabel('imp_conv(t)')
 
-axs[2].plot(time_data_whale, noise_whale, label="noise")
+axs[2].plot(time_data_whale, noise_whale, label="bkg")
+axs[2].legend()
 
 # %%
 # Matched filtering
 # For each observatory use this template to calculate the SNR time series
 # Resize the array so it matches the length of the PSD arrays
 import pycbc.filter as filt
-from pycbc import types, waveform as wf
-
-plt.figure(5);plt.clf()
-fig = plt.figure(figsize=[10, 5])
-ax = plt.gca()
-
-snr_full = {}
-print(1/(time[1] - time[0]))
-print(1/(time_data[1]-time_data[0]))
-print(1/sampling_time_whale)
-print(len(amplitude_f))
-print(len(amplitude_data_f))
-print(len(noise_whale_f))
+from pycbc import types
+from pycbc import psd
+"""
 # Do matched filter, filtering data that has noise given by PSD with
 imp = np.resize(imp,512)
 imp = np.real(imp)
-noise_whale_f = np.resize(noise_whale_f, 131072)
 noise_whale_f = np.real(noise_whale_f)
-amplitude_f = np.resize(amplitude_f,len(noise_whale_f))
+
+
 amplitude_data = np.resize(amplitude_data, (len(amplitude_f)-1)*2)
-#amplitude_data = np.real(amplitude_data_f)
-#amplitude_data = np.resize(amplitude_data,(len(imp)-1)*2)
 amplitude_f = types.FrequencySeries(amplitude_f, 1/sampling_time)
-amplitude_f = amplitude_f.to_frequencyseries()
 amplitude_data = types.TimeSeries(amplitude_data,delta_t=sampling_time_data/len(amplitude_data))#*len(amplitude_data))
-amplitude_data = amplitude_data.to_timeseries()
+
+noise_whale_f = np.ones(len(amplitude_data))
+noise_whale_f = np.resize(noise_whale_f,1048576)
+
 imp = types.FrequencySeries(imp,im.imp_Fs)
 imp = imp.to_frequencyseries()
 noise_whale_f = types.FrequencySeries(noise_whale_f, 1/sampling_time_whale)
-noise_whale_f = noise_whale_f.to_frequencyseries()
-#amplitude = np.asarray(amplitude)
-#amplitude_data = np.asanyarray(amplitude_data)
-#amplitude_data = amplitude_data.reshape(amplitude_data.size,)
-#amplitude = amplitude.reshape(amplitude.size,)
-#amplitude_data.resize(len(amplitude))
-print("length signal",amplitude_f.shape)
-print("length data",amplitude_data.shape)
-print("length noise",noise_whale_f.shape)
-print(amplitude_f.dtype)
-print(amplitude_data.dtype)
-print(noise_whale_f.dtype)
-print("delta_f signal",amplitude_f.delta_f)
-print("delta_t data",amplitude_data.delta_t)
-print("delta_t given to data",sampling_time_data/len(amplitude_data))
-print("delta_f data",amplitude_data.delta_f)
-print("delta_f noise",noise_whale_f.delta_f)
-print("1/dt signal",1/sampling_time)
-print("1/dt data",1/sampling_time_data)
-print("1/dt noise",1/sampling_time_whale)
-snr_full = filt.matched_filter(amplitude_f, amplitude_data,noise_whale_f)
-ax.plot(snr_full.sample_times*len(amplitude_data), abs(snr_full),
-            alpha=alpha)
-ax.legend()
-ax.set_title("matched filtering")
-ax.grid()
-ax.set_ylim(0, None)
-ax.set_xlabel('Time (s)')
-ax.set_ylabel('Signal-to-noise (SNR)')
-plt.show()
-plt.close()
+"""
 # %%
 np.seterr(invalid="raise")
 end_time = 0.3

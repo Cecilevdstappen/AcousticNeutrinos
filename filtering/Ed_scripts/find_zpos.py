@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+Created on Mon Apr 25 13:48:09 2022
+
+@author: gebruiker
+"""
+
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
 Created on Fri Feb 25 12:06:37 2022
 
 @author: gebruiker
@@ -43,42 +51,28 @@ plt.style.use('/home/gebruiker/AcousticNeutrinos/filtering/Ed_scripts/cecile.mpl
 ### data_td, noise plus signal.
 # data file is just one column. Sample freq is 144kHz
 
-transfer_function=True
+transfer_function=False
+r_pos = 300
+energy = 13
 scaling = 1
-rpos = 300
-energy = 11
-
-def padme(array1, array2):
-    # make length as the longest array
-    if len(array1) > len(array2):
-        array2 = np.pad(array2, (len(array1)-len(array2), 0) )
-        return array1, array2
-    elif len(array2) > len(array1):
-        array1 = np.pad(array1, (len(array2)-len(array1), 0) )
-        return array1, array2
-    else:
-        return array1, array2
-    
-#for z_data in np.arange(10,110,10):
-for energy in np.arange(9,14,1):
-    L_zpos = []
-    for zpos in (2,4,6,8,10,15,20):
-        print (zpos)
-        L_energy = []
+#for energy in np.arange(12,14,1):
+for energy in [9,10,11,12,13]:
+    print('now at energy E = 1e'+str(energy))
+    L_zpos_reco = []
+    #for z_data in np.arange(10,110,10):
+    L_zpos_simu = []
+    for z_data in np.arange(1,21,1):
+        max_snr = 0.
         L_max_snr = [] 
-        L_amplitude_max = []
-        L_rpos = []
-        for rpos in (20,50,100,200,300,400,500,600,700,800,900,1000):
-            max_snr = 0.
-            L_energy.append(10**energy)
-            L_rpos.append(rpos)
-            L_zpos.append(zpos) 
-            
-            #for scaling in np.arange(10,20,50): 
+        L_zpos = []
         
-            data_file = '../Neutrino_data_files/neutrino_'+str(round(float(zpos),1))+'_'+str(rpos)+'_1_'+str(energy)+'_'+str(scaling)+'ss6.txt'
-            template_file = '../Neutrino_data_files/neutrino_'+str(round(float(zpos),1))+'_'+str(rpos)+'_1_'+str(energy)+'.dat'
-         
+        L_zpos_simu.append(z_data)
+        for z_template in np.arange(1,21,1):
+            L_zpos.append(z_template) 
+            L_amplitude_max = []            
+    
+            data_file = '../Neutrino_data_files/neutrino' + '_' + str(float(z_data))+'_'+str(r_pos)+'_1_'+str(energy)+'_'+str(scaling)+'.txt'
+            template_file = '../Neutrino_data_files/neutrino_'+str(float(z_template)) +'_'+str(r_pos)+'_1_'+str(energy)+'.dat'
             data = np.loadtxt(data_file,  usecols=(0), dtype='float', unpack=True)  
             noise_signal_td = data
             #amplitude_max = max(noise_signal_td)
@@ -94,22 +88,9 @@ for energy in np.arange(9,14,1):
             
             #########################################################################
             
-            
-        
             flow = 500.; fhigh= 30000.
             
-            
-            #white noise
-            
-            
-            #    f, Pxx_den = sg.periodogram(noise_whale, fs=144000., nfft=512)
-            #    Pxx_den = resample_by_interpolation(Pxx_den,257,65537)
-            #    psd_period = types.FrequencySeries(Pxx_den, noise_fd.delta_f)
-            
-            #psd_scipy = psd.interpolate(p_scipy, noise_fd.delta_f)
-            #psd_scipy = psd.inverse_spectrum_truncation(psd_scipy, int(dt*512*noise_td.sample_rate),low_frequency_cutoff=flow)
-            
-            
+        
             
             #########################################################################
         
@@ -117,24 +98,25 @@ for energy in np.arange(9,14,1):
             data = np.loadtxt(template_file,  usecols=(0,1), dtype='float', unpack=True)  
             time = data[0]
             amplitude_og = data[1]
-            amplitude_og =amplitude_og*1000*scaling
+            amplitude_og =amplitude_og*1000 #convert to mPa
             amplitude_max = max(amplitude_og)
             
             L_amplitude_max.append(amplitude_max)
-    
-                
+            
+                    
             if transfer_function == True:
                 frf = design_FRF(Fs=144000)
                 #frf.highpass = True
                 # frf.pz2tf((375,12000,17000),(0.15,0.02,0.07),100000) # hydrophone with cap
                 frf.pz2tf((375,12000),(0.1,0.03),144000) # hydrophone without cap
                 # frf.pz2tf((12000,375),(0.02,0.1),100000) # hydrophone without cap
-                #frf.mbutton.on()
+                frf.mbutton.on()
                 amplitude_og = sg.lfilter(frf.num,frf.dnum,amplitude_og)
                 noise_signal_td = sg.lfilter(frf.num,frf.dnum,noise_signal_td)
                 
             
             amplitude = np.pad(amplitude_og, (len(noise_signal_td)-len(amplitude_og), 0) )
+            #amplitude = amplitude[::-1]
             dt = 1/144000.
             
             template = types.TimeSeries(amplitude, dt)
@@ -145,65 +127,61 @@ for energy in np.arange(9,14,1):
             L_psd_inter = []
             L_psd_seg = []
             L_psd_scipy = []
-            L_segment = [2048] #length noisr_signal_td
+            L_segment = [32] #length noisr_signal_td
             for i in L_segment:
                 seg_len = i
                 p_estimated = data_td.psd(dt*i, avg_method='mean',  window='hann') #data_td.sample_times[-1]/512
                 p = psd.interpolate(p_estimated, data_td.delta_f)
-                p = psd.inverse_spectrum_truncation(p, int(dt*seg_len*data_td.sample_rate),low_frequency_cutoff=flow)
+                #p = psd.inverse_spectrum_truncation(p, int(dt*seg_len*data_td.sample_rate),low_frequency_cutoff=flow)
                 psd_inter = p
                 L_psd_inter.append(psd_inter)
         
-             
-            
             max_snr_t = 0.
             L_fhigh = []
             L_pk = []
             L_snr = ['psd_inter','psd_seg','psd_scipy','psd_1']
-        #        print(template.delta_f)
-        #        print(data_td.delta_f)
-               
-            #for flow in np.arange(0,20000,10):
-            #for i in L_snr:
-            j = 0
-            #max_snr = 0.
-            #for fhigh in np.arange(8000,30000,100): 
+    
             snr_inter = matched_filter(template, data_td, psd = psd_inter,low_frequency_cutoff=flow,high_frequency_cutoff=fhigh)
-            #snr_period = matched_filter(template, data_td, psd = psd_period,low_frequency_cutoff=flow,high_frequency_cutoff=fhigh)
-            snr_inter = snr_inter.crop(0.2, 0.2)
             pk, pidx = snr_inter.abs_max_loc()
             peak_t = snr_inter.sample_times[pidx]
             L_fhigh.append(fhigh)
             L_pk.append(pk)
-            if (pk > max_snr):
-                max_snr_time = peak_t
-                max_snr = pk
-            
+            #if (pk > max_snr):
+            max_snr_time = peak_t
+            max_snr = pk
+    
             L_max_snr.append(max_snr)
-            max_value = max(L_max_snr)
-            max_index = L_max_snr.index(max_value)
             
-            #print('The max SNR is {:.1f} at z position: {:.1f}, the actual z position was {:.1f}'.format(max_snr, L_zpos[max_index],z_data))
-       
-        pp.figure(2, figsize=(6,5))
-        pp.plot(L_rpos,L_max_snr,'-',label ='z = '+(str(zpos))+' m')
-        #pp.plot(L_zpos, L_max_snr, '-',label ='E=1e'+ str(energy))
-        pp.grid('on',which='both',axis='x')
-        pp.grid('on',which='both',axis='y')
-        pp.title('E = 1e'+str(energy)+ ' GeV, sea state 6, incl. transfer function')
-        #pp.title('Amplitude vs z position, not scaled')
-        #pp.xlabel('template zpos')
-        #pp.xlabel('Z position (m)')
-        pp.xlabel('r (m)')
-        pp.ylabel('SNR max value (20log$_{10}$ (A$_{signal}$/A$_{noise}$))')
-        #pp.yscale('log')
-        #pp.xscale('log')
-    pp.plot(L_rpos, np.ones((len(L_rpos,)))*5.7 ,'--',color = 'black',label='Min SNR for neutrino signal')  
-    pp.legend(ncol=2)
-    pp.savefig("/home/gebruiker/Pictures/Overleaf/SNR_rpos_seastate6_E"+str(energy)+'_tf')
-    pp.close()
-
             
+#        pp.plot( np.arange(0,21,1),L_max_snr)
+#        pp.show()
+        max_value = max(L_max_snr)
+        max_index = L_max_snr.index(max_value)
+        z_reco = L_zpos[max_index]
+        L_zpos_reco.append(z_reco)
+                
+        #print('The max SNR is {:.1f} at z position: {:.1f}, the actual z position was {:.1f}'.format(max_value, z_reco,z_data))
+        #print(L_max_snr)
+        
+    
+    pp.figure(2)
+    #pp.plot(L_zpos,L_amplitude_max,label=(z_data, transferfunction))
+    pp.plot(L_zpos_simu, L_zpos_reco,'-',label = "E = 1e" +str(energy))
+    pp.scatter(L_zpos_simu, L_zpos_reco)
+    pp.grid('on',which='both',axis='x')
+    pp.grid('on',which='both',axis='y')
+    pp.title('E = [1e9,1e13] GeV, r ='+str(r_pos)+' m')
+    #pp.title('Amplitude vs z position, not scaled')
+    #pp.xlabel('template zpos')
+    pp.xlabel('Simulated z position (m)')
+    pp.ylabel('Reconstructed z position (m)')
+    #pp.yscale('log')
+    #pp.xscale('log')
+pp.plot(L_zpos_simu, L_zpos_simu, '-', label = "Correctly reconstructed z")
+pp.legend(ncol=3)
+pp.show()
+pp.close()
+                    
 
 
     
